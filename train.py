@@ -1,3 +1,4 @@
+import faulthandler;faulthandler.enable()
 import argparse
 import os
 import time
@@ -11,7 +12,7 @@ from torch.autograd import Variable
 from torch.utils import data
 import torchvision
 import numpy as np
-from dataset import skeleton_Dataset
+from dataset import iSLR_Dataset
 from model import skeleton_model
 
 import argparse
@@ -21,6 +22,9 @@ import time
 from tensorboardX import SummaryWriter
 
 from opts import parser
+from transforms import *
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def create_path(path):
     if not osp.exists(path):
@@ -50,7 +54,7 @@ def main():
     global args, best_prec1, best_prec5
     args = parser.parse_args()
 
-    args.store_name = '_'.join(['iSLR','skeleton',\
+    args.store_name = '_'.join(['iSLR',args.train_mode,\
                                 'class'+str(args.num_class)])
     
     create_path(args.root_model)
@@ -80,16 +84,38 @@ def main():
     cudnn.benchmark = True
 
     # Data loading code
+    crop_size = 224
+    input_mean = [0.485, 0.456, 0.406]
+    input_std = [0.229, 0.224, 0.225]          
+
+    normalize = GroupNormalize(input_mean,input_std)
 
     train_loader = torch.utils.data.DataLoader(
-        skeleton_Dataset(args.skeleton_root,args.train_file),
+        iSLR_Dataset(args.video_root,args.skeleton_root,args.train_file,
+            length=args.length,
+            transform=torchvision.transforms.Compose([
+                # train_augmentation,
+                GroupScale((crop_size,crop_size)),
+                Stack(roll=False),
+                ToTorchFormatTensor(div=True),
+                normalize,
+            ])
+        ),
         batch_size=args.batch_size,shuffle=True,
         num_workers=args.workers,pin_memory=True,
         # collate_fn=collate
     )
 
     val_loader = torch.utils.data.DataLoader(
-        skeleton_Dataset(args.skeleton_root,args.val_file),
+        iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
+            length=args.length,
+            transform=torchvision.transforms.Compose([
+                GroupScale((crop_size,crop_size)),
+                Stack(roll=False),
+                ToTorchFormatTensor(div=True),
+                normalize,
+            ])
+        ),
         batch_size=args.batch_size,shuffle=False,
         num_workers=args.workers,pin_memory=True,
         # collate_fn=collate
@@ -106,7 +132,7 @@ def main():
     global writer
     writer = SummaryWriter(comment=args.store_name)
 
-    prec1 = validate(val_loader, model, criterion, 0 // args.eval_freq)
+    # prec1 = validate(val_loader, model, criterion, 0 // args.eval_freq)
 
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)
@@ -141,7 +167,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     model.train()
 
     end = time.time()
-    for i, (input, target) in enumerate(train_loader):
+    for i, (input, image, heatmap, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -152,9 +178,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
         input_var = input
         target.require_grad = True
         target_var = target
+        image.require_grad = True
+        heatmap.require_grad = True
 
         # compute output
-        output = model(input_var)
+        output = model(input_var,image,heatmap,train_mode=args.train_mode)
         loss = criterion(output, target_var)
 
         # attention_map = model.module.base_model.attention_map
@@ -210,7 +238,7 @@ def validate(val_loader, model, criterion, epoch):
     model.eval()
 
     end = time.time()
-    for i, (input, target) in enumerate(val_loader):
+    for i, (input, image, heatmap, target) in enumerate(val_loader):
         with torch.no_grad():
             target = target.cuda()
             # input_var = torch.autograd.Variable(input)
@@ -219,9 +247,11 @@ def validate(val_loader, model, criterion, epoch):
             input_var = input
             target.require_grad = False
             target_var = target
-
+            image.require_grad = True
+            heatmap.require_grad = True
+            
             # compute output
-            output = model(input_var)
+            output = model(input_var,image,heatmap,train_mode=args.train_mode)
             loss = criterion(output, target_var)
 
             # measure accuracy and record loss
