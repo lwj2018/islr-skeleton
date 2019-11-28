@@ -14,31 +14,31 @@ class base_cnn(nn.Module):
             nn.ReLU()
             )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(64,8,(3,1),1,padding=(1,0)),
-            nn.Conv2d(8,32,(1,3),1,padding=(0,1))
+            nn.Conv2d(64,1,(3,1),1,padding=(1,0)),
+            nn.Conv2d(1,32,(1,3),1,padding=(0,1))
         )
         self.conv3 = nn.Sequential(
-            nn.Conv2d(32,8,(3,1),1,padding=(1,0)),
-            nn.Conv2d(8,32,(1,3),1,padding=(0,1)),
+            nn.Conv2d(32,1,(3,1),1,padding=(1,0)),
+            nn.Conv2d(1,32,(1,3),1,padding=(0,1)),
             nn.MaxPool2d(2)
             )
         self.conv4 = nn.Sequential(
-            nn.Conv2d(32,8,(3,1),1,padding=(1,0)),
-            nn.Conv2d(8,64,(1,3),1,padding=(0,1)),
+            nn.Conv2d(32,1,(3,1),1,padding=(1,0)),
+            nn.Conv2d(1,64,(1,3),1,padding=(0,1)),
             nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
                 
         self.conv5 = nn.Sequential(
-            nn.Conv2d(64,8,(3,1),1,padding=(1,0)),
-            nn.Conv2d(8,64,(1,3),1,padding=(0,1)),
+            nn.Conv2d(64,1,(3,1),1,padding=(1,0)),
+            nn.Conv2d(1,64,(1,3),1,padding=(0,1)),
             nn.ReLU(),
             nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
         self.conv6 = nn.Sequential(
-            nn.Conv2d(64,8,(3,1),1,padding=(1,0)),
-            nn.Conv2d(8,128,(1,3),1,padding=(0,1)),        
+            nn.Conv2d(64,1,(3,1),1,padding=(1,0)),
+            nn.Conv2d(1,128,(1,3),1,padding=(0,1)),        
             nn.Tanh(),
             nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
@@ -65,21 +65,21 @@ class cnn_classifier(nn.Module):
         self.length = length
         self.img_feature_dim = img_feature_dim
         self.conv1 = nn.Sequential(
-            nn.Conv1d(img_feature_dim,32,3,1,padding=1),
+            nn.Conv1d(img_feature_dim,1,3,1,padding=1),
             nn.MaxPool1d(2)
         )
         self.conv2 = nn.Sequential(
-            nn.Conv1d(32,img_feature_dim,3,1,padding=1),
+            nn.Conv1d(1,img_feature_dim,3,1,padding=1),
             nn.MaxPool1d(2)
         )
         self.conv3 = nn.Sequential(
-            nn.Conv1d(img_feature_dim,32,3,1,padding=1),
+            nn.Conv1d(img_feature_dim,1,3,1,padding=1),
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.MaxPool1d(2)
         )
         self.conv4 = nn.Sequential(
-            nn.Conv1d(32,img_feature_dim,3,1,padding=1),
+            nn.Conv1d(1,img_feature_dim,3,1,padding=1),
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.MaxPool1d(2)

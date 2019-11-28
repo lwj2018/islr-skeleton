@@ -103,9 +103,12 @@ class skeleton_model(nn.Module):
             out = out.transpose(1,2).contiguous()
             N,T,J,D = out.size()
             out = out.view(N,T,-1)
+            out = F.sigmoid(out)
 
             f = self.cnn_forward(image,heatmap)
             out_c = self.cnn_classifier.get_feature(f)
+            out_c = F.sigmoid(out_c)
+
             out = self.late_fusion(out,out_c)
 
         return out

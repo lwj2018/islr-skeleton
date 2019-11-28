@@ -34,7 +34,7 @@ class iSLR_Dataset(data.Dataset):
     
     def __init__(self, video_root, skeleton_root, list_file,
                 modality='RGB', transform=None, 
-                length=32):
+                length=32,width=1280,height=720):
         self.video_root = video_root
         self.skeleton_root = skeleton_root
         self.list_file = list_file
@@ -42,8 +42,8 @@ class iSLR_Dataset(data.Dataset):
         self.transform = transform
         self.length = length
         #TODO not hard code
-        self.width = 1280
-        self.height = 720
+        self.width = width
+        self.height = height
         self.skeleton_index = [5,6,7,9,10,11,21,22,23,24]
         
         self._parse_list()
@@ -66,7 +66,11 @@ class iSLR_Dataset(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        interval = num_frames-1//self.length
+        basic_indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        jitter = np.random.randint(0,interval,self.length)
+        jitter = (np.random.rand(self.length)*interval).astype(int)
+        indices = np.sort(basic_indices+jitter)
         return indices
     
     def _load_data(self, filename):
@@ -84,25 +88,29 @@ class iSLR_Dataset(data.Dataset):
             skeleton = np.array(skeleton)
             shape = skeleton.size
             skeleton = np.reshape(skeleton,[shape//2,2])
-            skeleton = skeleton/np.array([self.width,self.height])
             skeleton = skeleton[self.skeleton_index]
             mat.append(skeleton)
-        # mat: T,N,D
+        # mat: T,J,D
         mat = np.array(mat)
         mat = mat.astype(np.float32)
         return mat   
 
     def __getitem__(self, index):
         record = self.video_list[index]
-        images = list()
+        # get mat
         mat = self._load_data(record.skeleton_file)
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         indices = self.get_sample_indices(num_frames)
+        mat = mat[indices,:,:]
+        # data augmentation
+        mat = self.random_jitterq(mat)
+        # T J D
+        # get images
+        images = list()
         for i in indices:
             img = self._load_image(record.path, i)
             images.extend(img)
-        mat = mat[indices,:,:]
         
         heat_maps = []
         for i in range(mat.shape[0]):
@@ -143,7 +151,6 @@ class iSLR_Dataset(data.Dataset):
 
                 Z = np.exp(-fac/2)/N
                 Z = (Z-Z.min())/(Z.max()-Z.min())
-                Z = torch.Tensor(Z)
                 return Z
         N = 14
         X = np.linspace(0,1,N)
@@ -160,3 +167,29 @@ class iSLR_Dataset(data.Dataset):
         p2 = Distribution(mu,Sigma)
         Z = p2.two_d_gaussian(pos)
         return Z
+
+    def random_augmentation(self,mat):
+        choice = np.random.randint(0,2,4)
+        if choice[0]==1:
+            mat = self.random_jitter(mat)
+        elif choice[1]==1:
+            mat = self.random_shift(mat)
+
+    def random_jitter(self,mat):
+        # input: T J D
+        jitter_amp = 10
+        delta  = np.random.randint(0,jitter_amp,mat.shape)
+        mat = mat+delta
+        mat[:,:,0] = np.clip(mat[:,:,0],0,self.width)
+        mat[:,:,1] = np.clip(mat[:,:,1],0,self.height)
+        return mat
+
+    def random_shift(self,mat):
+        shift_amp = 50
+        xshift = np.random.randint(-shift_amp,shift_amp)
+        yshift = np.random.randint(-shift_amp,shift_amp)
+        mat[:,:,0] = mat[:,:,0]+xshift
+        mat[:,:,1] = mat[:,:,1]+yshift
+        mat[:,:,0] = np.clip(mat[:,:,0],0,self.width)
+        mat[:,:,1] = np.clip(mat[:,:,1],0,self.height)
+        return mat

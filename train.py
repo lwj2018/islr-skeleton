@@ -24,7 +24,6 @@ from tensorboardX import SummaryWriter
 from opts import parser
 from transforms import *
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def create_path(path):
     if not osp.exists(path):
@@ -53,6 +52,7 @@ best_prec5 = 0
 def main():
     global args, best_prec1, best_prec5
     args = parser.parse_args()
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
     args.store_name = '_'.join(['iSLR',args.train_mode,\
                                 'class'+str(args.num_class)])
@@ -180,6 +180,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         target_var = target
         image.require_grad = True
         heatmap.require_grad = True
+        heatmap =heatmap.float()
 
         # compute output
         output = model(input_var,image,heatmap,train_mode=args.train_mode)
@@ -249,7 +250,8 @@ def validate(val_loader, model, criterion, epoch):
             target_var = target
             image.require_grad = True
             heatmap.require_grad = True
-            
+            heatmap = heatmap.float()
+
             # compute output
             output = model(input_var,image,heatmap,train_mode=args.train_mode)
             loss = criterion(output, target_var)
