@@ -13,9 +13,12 @@ parser.add_argument("--val_file",type=str,
 parser.add_argument('--root_model', type=str, 
                     default='models')
 parser.add_argument('--train_mode', type=str, 
-                    default='single_rgb')
+                    default='late_fusion',
+                    choice=['single_rgb','single_skeleton','late_fusion'])
 parser.add_argument('--gpus', type=str, 
                     default='0,1')
+parser.add_argument('--cnn_model',type=str,
+                        default='resnet18')
 
 parser.add_argument('--num_class', type=int, default=500)
 parser.add_argument('--hidden_unit', type=int, default=512)
@@ -24,7 +27,7 @@ parser.add_argument('--length', type=int, default=32)
 parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=10000, type=int, metavar='N',
                     help='number of total epochs to run')
-parser.add_argument('-b', '--batch-size', default=8, type=int,
+parser.add_argument('-b', '--batch-size', default=2, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     metavar='LR', help='initial learning rate')
@@ -51,7 +54,11 @@ parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
 parser.add_argument('--resume', default=r'', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--val_resume', 
-        default='models/iSLR_skeleton_class500_best.pth.tar', type=str, metavar='PATH',
+        default='', type=str, metavar='PATH',
         help='path to latest checkpoint (default: none)')
+parser.add_argument('--skeleton_model', 
+        default='models/iSLR_skeleton_class500_best.pth.tar', type=str)
+parser.add_argument('--cnn_model', 
+        default='models/iSLR_RGB_resnet18_class500_hidden1024_best.pth.tar, type=str)
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')

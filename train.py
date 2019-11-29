@@ -60,6 +60,9 @@ def main():
     create_path(args.root_model)
     # get model 
     model = skeleton_model(args.num_class)
+    # resume model
+    if args.train_mode = 'late_fusion':
+        resume_model(model,args.skeleton_model,args.cnn_model)
 
     model = torch.nn.DataParallel(model).cuda()
     model_dict = model.state_dict()

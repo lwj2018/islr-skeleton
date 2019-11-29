@@ -6,11 +6,13 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from base_cnn import base_cnn, cnn_classifier
+from model_resnet import ResidualNet
 
 class skeleton_model(nn.Module):
 
     def __init__(self, num_class, in_channel=2,
-                            length=32,num_joint=10,modality='rgb'):
+                            length=32,num_joint=10,modality='rgb',
+                            cnn_model='resnet18'):
         # T N D
         super(skeleton_model, self).__init__()
         self.num_class = num_class
@@ -18,7 +20,7 @@ class skeleton_model(nn.Module):
         self.length = length
         self.num_joint = num_joint
         self.modality = modality
-        self.base_cnn = base_cnn()
+        self.get_cnn_model(cnn_model)
         self.cnn_classifier = cnn_classifier(
             num_class=num_class,
             length=length)
@@ -77,6 +79,12 @@ class skeleton_model(nn.Module):
             nn.ReLU(),
             nn.Dropout(p=0.5))
         self.fusion2 = nn.Linear(256,self.num_class)
+
+    def get_cnn_model(cnn_model):
+        if cnn_model=='resnet18':
+            self.cnn_model  = ResidualNet("ImageNet",18,1000,None)
+        elif cnn_model=='base':
+            self.cnn_model = base_cnn()
     
 
     def forward(self, input, image, heatmap,train_mode="single_skeleton"):
@@ -144,7 +152,7 @@ class skeleton_model(nn.Module):
         N,C,H,W = image.size()
         T = C//sample_len
         image = image.view( (-1, sample_len) + image.size()[-2:])
-        conv_out = self.base_cnn(image)
+        conv_out = self.cnn_model.get_conv_out(image)
         _f_list = []
         for i in range(heatmap.size(1)):
             _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
@@ -164,5 +172,6 @@ class skeleton_model(nn.Module):
         out = self.fusion1(out)
         out = self.fusion2(out)
         return out
+        
 
         
