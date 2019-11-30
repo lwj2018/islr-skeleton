@@ -13,7 +13,7 @@ from torch.utils import data
 import torchvision
 import numpy as np
 from dataset import iSLR_Dataset
-from model import skeleton_model
+from model import islr_model
 
 import argparse
 import os
@@ -23,6 +23,7 @@ from tensorboardX import SummaryWriter
 
 from opts import parser
 from transforms import *
+from viz_utils import attentionmap_visualize
 
 
 def create_path(path):
@@ -59,10 +60,10 @@ def main():
     
     create_path(args.root_model)
     # get model 
-    model = skeleton_model(args.num_class)
+    model = islr_model(args.num_class)
+    policies = model.get_optim_policies()
     # resume model
-    if args.train_mode = 'late_fusion':
-        resume_model(model,args.skeleton_model,args.cnn_model)
+    model = resume_model(model,args.skeleton_resume,args.cnn_resume)
 
     model = torch.nn.DataParallel(model).cuda()
     model_dict = model.state_dict()
@@ -87,6 +88,7 @@ def main():
     cudnn.benchmark = True
 
     # Data loading code
+    scale_size = 256
     crop_size = 224
     input_mean = [0.485, 0.456, 0.406]
     input_std = [0.229, 0.224, 0.225]          
@@ -127,10 +129,12 @@ def main():
     # define loss function (criterion) and optimizer
     criterion = torch.nn.CrossEntropyLoss().cuda()
 
-    optimizer = torch.optim.SGD(model.module.parameters(),
-                                args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    # optimizer = torch.optim.SGD(policies,
+    #                             args.lr,
+    #                             momentum=args.momentum,
+    #                             weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(policies,
+                                    args.lr)
     # get writer
     global writer
     writer = SummaryWriter(comment=args.store_name)
@@ -185,11 +189,13 @@ def train(train_loader, model, criterion, optimizer, epoch):
         heatmap.require_grad = True
         heatmap =heatmap.float()
 
+        # visualize heatmap
+        # tmp = heatmap.view((-1,)+heatmap.size()[-3:])
+        # attentionmap_visualize(image,tmp[[12,14,16,18],4,:,:].unsqueeze(1))
         # compute output
         output = model(input_var,image,heatmap,train_mode=args.train_mode)
         loss = criterion(output, target_var)
 
-        # attention_map = model.module.base_model.attention_map
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))
@@ -206,6 +212,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
+            # print(total_norm,args.clip_gradient)
             # if total_norm > args.clip_gradient:
                 # print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
 
@@ -302,8 +309,8 @@ def adjust_learning_rate(optimizer, epoch, lr_steps):
     lr = args.lr * decay
     decay = args.weight_decay
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-        param_group['weight_decay'] = decay
+        param_group['lr'] = lr * param_group['lr_mult']
+        param_group['weight_decay'] = decay * param_group['decay_mult']
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
@@ -355,6 +362,20 @@ def collate(batch):
     fts = [ft for _,ft,_ in X]
     targets = [target for _,_,target in X]
     return torch.stack(fts, 0), torch.cat(targets, 0), torch.Tensor(len_list)
+
+def resume_model(model, skeleton_resume, cnn_resume):
+    if args.train_mode == "late_fusion":
+        skeleton_checkpoint = torch.load(skeleton_resume)
+        cnn_checkpoint = torch.load(cnn_resume)
+        skeleton_state_dict = skeleton_checkpoint['state_dict']
+        cnn_state_dict = cnn_checkpoint['state_dict']
+        skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
+                skeleton_state_dict.items() if not "fc" in k}
+        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[2:]):v for k,v in
+                cnn_state_dict.items() if not ("fc" in k  )}
+        model.state_dict().update(skeleton_restore_params)
+        model.state_dict().update(cnn_restore_params)
+    return model
 
 if __name__=="__main__":
     main()

@@ -66,11 +66,11 @@ class iSLR_Dataset(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        interval = num_frames-1//self.length
-        basic_indices = np.linspace(1,num_frames-1,self.length).astype(int)
-        jitter = np.random.randint(0,interval,self.length)
-        jitter = (np.random.rand(self.length)*interval).astype(int)
-        indices = np.sort(basic_indices+jitter)
+        indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        # interval = num_frames-1//self.length
+        # jitter = np.random.randint(0,interval,self.length)
+        # jitter = (np.random.rand(self.length)*interval).astype(int)
+        # indices = np.sort(indices+jitter)
         return indices
     
     def _load_data(self, filename):
@@ -102,9 +102,12 @@ class iSLR_Dataset(data.Dataset):
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         indices = self.get_sample_indices(num_frames)
-        mat = mat[indices,:,:]
+        try:
+            mat = mat[indices,:,:]
+        except:
+            print(num_frames,indices)
         # data augmentation
-        mat = self.random_jitterq(mat)
+        # mat = self.random_augmentation(mat)
         # T J D
         # get images
         images = list()
@@ -152,12 +155,12 @@ class iSLR_Dataset(data.Dataset):
                 Z = np.exp(-fac/2)/N
                 Z = (Z-Z.min())/(Z.max()-Z.min())
                 return Z
-        N = 14
+        N = 7
         X = np.linspace(0,1,N)
         Y = np.linspace(0,1,N)
         X,Y = np.meshgrid(X,Y)
-        # x = x/self.width
-        # y = y/self.height
+        x = x/self.width
+        y = y/self.height
         mu = np.array([x,y])
         Sigma = np.array([[0.01,0],[0,0.01]])
         pos = np.empty(X.shape+(2,))

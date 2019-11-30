@@ -60,26 +60,26 @@ class base_cnn(nn.Module):
         return out
 
 class cnn_classifier(nn.Module):
-    def __init__(self, num_class, length=32, img_feature_dim=128):
+    def __init__(self, num_class, length=32, img_feature_dim=512):
         super(cnn_classifier, self).__init__()
         self.length = length
         self.img_feature_dim = img_feature_dim
         self.conv1 = nn.Sequential(
-            nn.Conv1d(img_feature_dim,1,3,1,padding=1),
+            nn.Conv1d(img_feature_dim,img_feature_dim//4,3,1,padding=1),
             nn.MaxPool1d(2)
         )
         self.conv2 = nn.Sequential(
-            nn.Conv1d(1,img_feature_dim,3,1,padding=1),
+            nn.Conv1d(img_feature_dim//4,img_feature_dim,3,1,padding=1),
             nn.MaxPool1d(2)
         )
         self.conv3 = nn.Sequential(
-            nn.Conv1d(img_feature_dim,1,3,1,padding=1),
+            nn.Conv1d(img_feature_dim,img_feature_dim//4,3,1,padding=1),
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.MaxPool1d(2)
         )
         self.conv4 = nn.Sequential(
-            nn.Conv1d(1,img_feature_dim,3,1,padding=1),
+            nn.Conv1d(img_feature_dim//4,img_feature_dim,3,1,padding=1),
             nn.ReLU(),
             nn.Dropout(p=0.5),
             nn.MaxPool1d(2)

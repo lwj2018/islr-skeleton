@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 from torch.nn import init
-from cbam import *
-from bam import *
+from module.cbam import *
+from module.bam import *
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
@@ -97,6 +97,7 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
+        
 
 class ResNet(nn.Module):
     def __init__(self, block, layers,  network_type, num_classes, att_type=None):
@@ -182,28 +183,28 @@ class ResNet(nn.Module):
         x = self.fc(x)
         return x
 
-def get_conv_out(self,x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        if self.network_type == "ImageNet":
-            x = self.maxpool(x)
+    def get_conv_out(self,x):
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
+            if self.network_type == "ImageNet":
+                x = self.maxpool(x)
 
-        x = self.layer1(x)
-        if not self.bam1 is None:
-            x = self.bam1(x)
+            x = self.layer1(x)
+            if not self.bam1 is None:
+                x = self.bam1(x)
 
-        x = self.layer2(x)
-        if not self.bam2 is None:
-            x = self.bam2(x)
+            x = self.layer2(x)
+            if not self.bam2 is None:
+                x = self.bam2(x)
 
-        x = self.layer3(x)
-        if not self.bam3 is None:
-            x = self.bam3(x)
+            x = self.layer3(x)
+            if not self.bam3 is None:
+                x = self.bam3(x)
 
-        x = self.layer4(x)
-        conv_out = x
-        return conv_out
+            x = self.layer4(x)
+            conv_out = x
+            return conv_out
 
 
 def ResidualNet(network_type, depth, num_classes, att_type):
