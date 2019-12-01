@@ -99,9 +99,11 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         iSLR_Dataset(args.video_root,args.skeleton_root,args.train_file,
             length=args.length,
+            image_length=args.image_length,
             transform=torchvision.transforms.Compose([
-                # train_augmentation,
-                GroupScale((crop_size,crop_size)),
+                # GroupScale((crop_size,crop_size)),
+                GroupScale(int(scale_size)),
+                GroupCenterCrop(crop_size),
                 Stack(roll=False),
                 ToTorchFormatTensor(div=True),
                 normalize,
@@ -115,8 +117,11 @@ def main():
     val_loader = torch.utils.data.DataLoader(
         iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
             length=args.length,
+            image_length=args.image_length,
             transform=torchvision.transforms.Compose([
-                GroupScale((crop_size,crop_size)),
+                # GroupScale((crop_size,crop_size)),
+                GroupScale(int(scale_size)),
+                GroupCenterCrop(crop_size),
                 Stack(roll=False),
                 ToTorchFormatTensor(div=True),
                 normalize,
@@ -134,7 +139,7 @@ def main():
     #                             args.lr,
     #                             momentum=args.momentum,
     #                             weight_decay=args.weight_decay)
-    optimizer = torch.optim.Adam(policies,
+    optimizer = torch.optim.Adam(model.module.parameters(),
                                     args.lr)
     # get writer
     global writer
@@ -211,8 +216,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
         # print(attention_map)
 
-        # if args.clip_gradient is not None:
-        #     total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
+        if args.clip_gradient is not None:
+            total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
         #     print(total_norm,args.clip_gradient)
             # if total_norm > args.clip_gradient:
                 # print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
@@ -310,8 +315,10 @@ def adjust_learning_rate(optimizer, epoch, lr_steps):
     lr = args.lr * decay
     decay = args.weight_decay
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr * param_group['lr_mult']
-        param_group['weight_decay'] = decay * param_group['decay_mult']
+        param_group['lr'] = lr
+        # param_group['lr'] = lr * param_group['lr_mult']
+        param_group['weight_decay'] = decay
+        # param_group['weight_decay'] = decay * param_group['decay_mult']
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
@@ -379,14 +386,14 @@ def resume_model(model, skeleton_resume, cnn_resume):
         model_statedict.update(cnn_restore_params)
         model.load_state_dict(model_statedict)
     elif args.train_mode == "simple_fusion":
-        skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
-                skeleton_state_dict.items()}
-        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
-                cnn_state_dict.items()}
-        model_statedict.update(skeleton_restore_params)
-        model_statedict.update(cnn_restore_params)
-        model.load_state_dict(model_statedict)
-        print(model.cnn_model.state_dict())
+        # skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
+        #         skeleton_state_dict.items()}
+        # cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
+        #         cnn_state_dict.items()}
+        # model_statedict.update(skeleton_restore_params)
+        # model_statedict.update(cnn_restore_params)
+        # model.load_state_dict(model_statedict)
+        pass
 
     return model
 

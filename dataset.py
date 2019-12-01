@@ -34,13 +34,14 @@ class iSLR_Dataset(data.Dataset):
     
     def __init__(self, video_root, skeleton_root, list_file,
                 modality='RGB', transform=None, 
-                length=32,width=1280,height=720):
+                length=32,image_length=16,width=1280,height=720):
         self.video_root = video_root
         self.skeleton_root = skeleton_root
         self.list_file = list_file
         self.modality = modality
         self.transform = transform
         self.length = length
+        self.image_length = image_length
         #TODO not hard code
         self.width = width
         self.height = height
@@ -67,12 +68,13 @@ class iSLR_Dataset(data.Dataset):
 
     def get_sample_indices(self,num_frames):
         # indices = np.linspace(1,num_frames-1,self.length).astype(int)
-        indices = np.linspace(1,num_frames-1,16).astype(int)
+        skeleton_indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        image_indices = np.linspace(1,num_frames-1,self.image_length).astype(int)
         # interval = num_frames-1//self.length
         # jitter = np.random.randint(0,interval,self.length)
         # jitter = (np.random.rand(self.length)*interval).astype(int)
         # indices = np.sort(indices+jitter)
-        return indices
+        return skeleton_indices,image_indices
     
     def _load_data(self, filename):
         filename = osp.join(self.skeleton_root, filename)
@@ -102,18 +104,18 @@ class iSLR_Dataset(data.Dataset):
         mat = self._load_data(record.skeleton_file)
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
-        indices = self.get_sample_indices(num_frames)
+        skeleton_indices,image_indices = self.get_sample_indices(num_frames)
         try:
-            mat = mat[indices,:,:]
+            mat = mat[skeleton_indices,:,:]
         except:
-            print(num_frames,indices)
+            print(num_frames,skeleton_indices)
         # data augmentation
         # mat = self.random_augmentation(mat)
         # T J D
         # get images
         images = list()
         # TODO: just make it run
-        for i in indices[::2]:
+        for i in image_indices:
             img = self._load_image(record.path, i)
             images.extend(img)
         

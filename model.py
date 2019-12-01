@@ -65,17 +65,16 @@ class islr_model(nn.Module):
             out = self.late_fusion(out,out_c)
         
         elif train_mode=='simple_fusion':
-            # f = self.skeleton_model.get_feature(input)
-            # out = self.skeleton_model.classify(f)
+            f = self.skeleton_model.get_feature(input)
+            out = self.skeleton_model.classify(f)
             # out = F.softmax(out,1)
 
 
             out_c = self.cnn_model(image)
-            out = out_c
             # out_c = F.softmax(out_c,1)
 
-            # out = torch.stack([out,out_c],2)
-            # out = F.adaptive_avg_pool1d(out,1).squeeze(2)
+            out = torch.stack([out,out_c],2)
+            out = F.adaptive_avg_pool1d(out,1).squeeze(2)
 
         return out
 
