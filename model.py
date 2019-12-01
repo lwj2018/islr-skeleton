@@ -7,12 +7,13 @@ from torch.autograd import Variable
 from module.base_cnn import base_cnn, cnn_classifier
 from module.resnet_model import ResidualNet
 from module.skeleton_model import skeleton_model
+from module.cnn_model import cnn_model
 
 class islr_model(nn.Module):
 
     def __init__(self, num_class, in_channel=2,
                             length=32,num_joint=10,modality='rgb',
-                            cnn_model='resnet18'):
+                            cnn_type='resnet18'):
         # T N D
         super(islr_model, self).__init__()
         self.num_class = num_class
@@ -21,18 +22,15 @@ class islr_model(nn.Module):
         self.num_joint = num_joint
         self.modality = modality
         self.get_skeleton_model()
-        self.get_cnn_model(cnn_model)
+        self.get_cnn_model(cnn_type)
         self.cnn_classifier = cnn_classifier(
             num_class=num_class,
             length=length)
         self.late_fusion = late_fusion(num_class)
 
 
-    def get_cnn_model(self,cnn_model):
-        if cnn_model=='resnet18':
-            self.cnn_model  = ResidualNet("ImageNet",18,1000,None)
-        elif cnn_model=='base':
-            self.cnn_model = base_cnn()
+    def get_cnn_model(self,cnn_type ):
+        self.cnn_model = cnn_model(self.num_class,base_model=cnn_type)
 
     def get_skeleton_model(self):
         self.skeleton_model = skeleton_model(self.num_class,self.in_channel,
@@ -67,8 +65,17 @@ class islr_model(nn.Module):
             out = self.late_fusion(out,out_c)
         
         elif train_mode=='simple_fusion':
-            f = self.skeleton_model.get_feature(input)
-            out = self.skeleton_model.classify(f)
+            # f = self.skeleton_model.get_feature(input)
+            # out = self.skeleton_model.classify(f)
+            # out = F.softmax(out,1)
+
+
+            out_c = self.cnn_model(image)
+            out = out_c
+            # out_c = F.softmax(out_c,1)
+
+            # out = torch.stack([out,out_c],2)
+            # out = F.adaptive_avg_pool1d(out,1).squeeze(2)
 
         return out
 
@@ -109,7 +116,7 @@ class islr_model(nn.Module):
         return [
             {'params':finetune_params,'lr_mult':1,'decay_mult':1,
             'name':"finetune_params"},
-            {'params':normal_params,'lr_mult':1000,'decay_mult':1,
+            {'params':normal_params,'lr_mult':10,'decay_mult':1,
             'name':"normal_params"},
         ]
 

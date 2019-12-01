@@ -381,8 +381,12 @@ def resume_model(model, skeleton_resume, cnn_resume):
     elif args.train_mode == "simple_fusion":
         skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
                 skeleton_state_dict.items()}
+        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
+                cnn_state_dict.items()}
         model_statedict.update(skeleton_restore_params)
+        model_statedict.update(cnn_restore_params)
         model.load_state_dict(model_statedict)
+        print(model.cnn_model.state_dict())
 
     return model
 

@@ -66,7 +66,8 @@ class iSLR_Dataset(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        # indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        indices = np.linspace(1,num_frames-1,16).astype(int)
         # interval = num_frames-1//self.length
         # jitter = np.random.randint(0,interval,self.length)
         # jitter = (np.random.rand(self.length)*interval).astype(int)
@@ -111,7 +112,8 @@ class iSLR_Dataset(data.Dataset):
         # T J D
         # get images
         images = list()
-        for i in indices:
+        # TODO: just make it run
+        for i in indices[::2]:
             img = self._load_image(record.path, i)
             images.extend(img)
         
