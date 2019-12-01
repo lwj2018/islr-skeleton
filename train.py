@@ -64,6 +64,7 @@ def main():
     policies = model.get_optim_policies()
     # resume model
     model = resume_model(model,args.skeleton_resume,args.cnn_resume)
+    # print(model.skeleton_model.state_dict())
 
     model = torch.nn.DataParallel(model).cuda()
     model_dict = model.state_dict()
@@ -210,9 +211,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
         # print(attention_map)
 
-        if args.clip_gradient is not None:
-            total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
-            # print(total_norm,args.clip_gradient)
+        # if args.clip_gradient is not None:
+        #     total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
+        #     print(total_norm,args.clip_gradient)
             # if total_norm > args.clip_gradient:
                 # print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
 
@@ -364,17 +365,25 @@ def collate(batch):
     return torch.stack(fts, 0), torch.cat(targets, 0), torch.Tensor(len_list)
 
 def resume_model(model, skeleton_resume, cnn_resume):
+    skeleton_checkpoint = torch.load(skeleton_resume)
+    cnn_checkpoint = torch.load(cnn_resume)
+    skeleton_state_dict = skeleton_checkpoint['state_dict']
+    cnn_state_dict = cnn_checkpoint['state_dict']
+    model_statedict = model.state_dict()
     if args.train_mode == "late_fusion":
-        skeleton_checkpoint = torch.load(skeleton_resume)
-        cnn_checkpoint = torch.load(cnn_resume)
-        skeleton_state_dict = skeleton_checkpoint['state_dict']
-        cnn_state_dict = cnn_checkpoint['state_dict']
         skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
                 skeleton_state_dict.items() if not "fc" in k}
         cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[2:]):v for k,v in
                 cnn_state_dict.items() if not ("fc" in k  )}
-        model.state_dict().update(skeleton_restore_params)
-        model.state_dict().update(cnn_restore_params)
+        model_statedict.update(skeleton_restore_params)
+        model_statedict.update(cnn_restore_params)
+        model.load_state_dict(model_statedict)
+    elif args.train_mode == "simple_fusion":
+        skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
+                skeleton_state_dict.items()}
+        model_statedict.update(skeleton_restore_params)
+        model.load_state_dict(model_statedict)
+
     return model
 
 if __name__=="__main__":

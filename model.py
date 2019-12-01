@@ -56,15 +56,19 @@ class islr_model(nn.Module):
             out = out.transpose(1,2).contiguous()
             N,T,J,D = out.size()
             out = out.view(N,T,-1)
-            out = F.softmax(out)
+            # out = F.softmax(out)
             # N T(T/16) C1
 
             f = self.cnn_forward(image,heatmap)
             out_c = self.cnn_classifier.get_feature(f)
-            out_c = F.softmax(out_c)
+            # out_c = F.softmax(out_c)
             # N T(T/16) C2
 
             out = self.late_fusion(out,out_c)
+        
+        elif train_mode=='simple_fusion':
+            f = self.skeleton_model.get_feature(input)
+            out = self.skeleton_model.classify(f)
 
         return out
 
@@ -75,15 +79,18 @@ class islr_model(nn.Module):
         T = C//sample_len
         image = image.view( (-1, sample_len) + image.size()[-2:])
         conv_out = self.cnn_model.get_conv_out(image)
-        # _f_list = []
-        # for i in range(heatmap.size(1)):
-        #     _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
-        #     _f = F.adaptive_avg_pool2d(_f,[1,1]).squeeze()
-        #     _f_list.append(_f)
-        # f = torch.stack(_f_list,2)
-        # # NxT C J
-        # f = F.adaptive_avg_pool1d(f,1)
-        f = F.adaptive_avg_pool2d(conv_out,[1,1])
+        # use heatmap
+        _f_list = []
+        for i in range(heatmap.size(1)):
+            _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
+            _f = F.adaptive_avg_pool2d(_f,[1,1]).squeeze()
+            _f_list.append(_f)
+        f = torch.stack(_f_list,2)
+        # NxT C J
+        f = F.adaptive_avg_pool1d(f,1)
+        # don't use heatmap
+        # f = F.adaptive_avg_pool2d(conv_out,[1,1])
+        
         # NxT C
         f = f.view(N,T,-1)
         # N T C
@@ -102,7 +109,7 @@ class islr_model(nn.Module):
         return [
             {'params':finetune_params,'lr_mult':1,'decay_mult':1,
             'name':"finetune_params"},
-            {'params':normal_params,'lr_mult':10,'decay_mult':1,
+            {'params':normal_params,'lr_mult':1000,'decay_mult':1,
             'name':"normal_params"},
         ]
 

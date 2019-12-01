@@ -93,7 +93,7 @@ class skeleton_model(nn.Module):
         return out
 
     def classify(self,input):
-        out = input.view(out.size(0),-1)
+        out = input.view(input.size(0),-1)
         out = self.fc7(out)
         out = self.fc8(out)
 

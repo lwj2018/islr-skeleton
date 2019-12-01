@@ -14,14 +14,14 @@ parser.add_argument('--root_model', type=str,
                     default='models')
 parser.add_argument('--train_mode', type=str, 
                     default='late_fusion',
-                    choices=['single_rgb','single_skeleton','late_fusion'])
+                    choices=['single_rgb','single_skeleton','late_fusion','simple_fusion'])
 # remember to change when switch to server
 parser.add_argument('--gpus', type=str, 
                     default='0,1')
 parser.add_argument('--cnn_model',type=str,
                         default='resnet18')
 
-parser.add_argument('--num_class', type=int, default=10)
+parser.add_argument('--num_class', type=int, default=500)
 parser.add_argument('--hidden_unit', type=int, default=512)
 parser.add_argument('--length', type=int, default=32)
 # ========================= Learning Configs ==========================
@@ -31,7 +31,7 @@ parser.add_argument('--epochs', default=10000, type=int, metavar='N',
 # remember to change when switch to server
 parser.add_argument('-b', '--batch-size', default=8, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
-parser.add_argument('--lr', '--learning-rate', default=1e-7, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-6, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[10000], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')
