@@ -54,12 +54,14 @@ class islr_model(nn.Module):
             out = out.transpose(1,2).contiguous()
             N,T,J,D = out.size()
             out = out.view(N,T,-1)
-            # out = F.softmax(out)
+            out = l2norm(out,2)
+            print("out {}".format(out))
             # N T(T/16) C1
 
             f = self.cnn_forward(image,heatmap)
             out_c = self.cnn_classifier.get_feature(f)
-            # out_c = F.softmax(out_c)
+            out_c = l2norm(out_c,2)
+            print("outc {}".format(out_c))
             # N T(T/16) C2
 
             out = self.late_fusion(out,out_c)
@@ -67,14 +69,17 @@ class islr_model(nn.Module):
         elif train_mode=='simple_fusion':
             f = self.skeleton_model.get_feature(input)
             out = self.skeleton_model.classify(f)
+            print("out {}".format(out))
             # out = F.softmax(out,1)
 
 
             out_c = self.cnn_model(image)
+            print("out_c {}".format(out_c))
             # out_c = F.softmax(out_c,1)
 
             out = torch.stack([out,out_c],2)
             out = F.adaptive_avg_pool1d(out,1).squeeze(2)
+            print("final_out {}".format(out))
 
         return out
 
@@ -84,7 +89,7 @@ class islr_model(nn.Module):
         N,C,H,W = image.size()
         T = C//sample_len
         image = image.view( (-1, sample_len) + image.size()[-2:])
-        conv_out = self.cnn_model.get_conv_out(image)
+        conv_out = self.cnn_model.base_model.get_conv_out(image)
         # use heatmap
         _f_list = []
         for i in range(heatmap.size(1)):
@@ -137,6 +142,11 @@ class late_fusion(nn.Module):
         out = self.fusion1(out)
         out = self.fusion2(out)
         return out
+
+def l2norm(vector,dim):
+    l2norm = torch.sum(torch.pow(vector,2),dim)
+    vector = vector/(l2norm.unsqueeze(dim)+1e-6)
+    return vector
 
 
         

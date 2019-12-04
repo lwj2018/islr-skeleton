@@ -141,6 +141,8 @@ def main():
     #                             weight_decay=args.weight_decay)
     optimizer = torch.optim.Adam(model.module.parameters(),
                                     args.lr)
+    # optimizer = torch.optim.Adam(policies,
+    #                                 args.lr)
     # get writer
     global writer
     writer = SummaryWriter(comment=args.store_name)
@@ -193,11 +195,12 @@ def train(train_loader, model, criterion, optimizer, epoch):
         target_var = target
         image.require_grad = True
         heatmap.require_grad = True
+        input_var = input_var.float()
         heatmap =heatmap.float()
 
         # visualize heatmap
         # tmp = heatmap.view((-1,)+heatmap.size()[-3:])
-        # attentionmap_visualize(image,tmp[[12,14,16,18],4,:,:].unsqueeze(1))
+        # attentionmap_visualize(image,tmp[[12,14,16,18],0,:,:].unsqueeze(1))
         # compute output
         output = model(input_var,image,heatmap,train_mode=args.train_mode)
         loss = criterion(output, target_var)
@@ -266,6 +269,7 @@ def validate(val_loader, model, criterion, epoch):
             target_var = target
             image.require_grad = True
             heatmap.require_grad = True
+            input_var = input_var.float()
             heatmap = heatmap.float()
 
             # compute output
@@ -380,7 +384,7 @@ def resume_model(model, skeleton_resume, cnn_resume):
     if args.train_mode == "late_fusion":
         skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
                 skeleton_state_dict.items() if not "fc" in k}
-        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[2:]):v for k,v in
+        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
                 cnn_state_dict.items() if not ("fc" in k  )}
         model_statedict.update(skeleton_restore_params)
         model_statedict.update(cnn_restore_params)

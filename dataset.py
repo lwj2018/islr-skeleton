@@ -45,7 +45,7 @@ class iSLR_Dataset(data.Dataset):
         #TODO not hard code
         self.width = width
         self.height = height
-        self.skeleton_index = [5,6,7,9,10,11,21,22,23,24]
+        self.hand_joint = [5,6,7,9,10,11,21,22,23,24]
         
         self._parse_list()
 
@@ -91,7 +91,7 @@ class iSLR_Dataset(data.Dataset):
             skeleton = np.array(skeleton)
             shape = skeleton.size
             skeleton = np.reshape(skeleton,[shape//2,2])
-            skeleton = skeleton[self.skeleton_index]
+            # skeleton = skeleton[self.hand_joint]
             mat.append(skeleton)
         # mat: T,J,D
         mat = np.array(mat)
@@ -105,25 +105,33 @@ class iSLR_Dataset(data.Dataset):
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         skeleton_indices,image_indices = self.get_sample_indices(num_frames)
-        try:
-            mat = mat[skeleton_indices,:,:]
-        except:
-            print(num_frames,skeleton_indices)
+        mat = mat[skeleton_indices,:,:]
+        # mat: T J D
+        MatForImage = mat
+        # view invarianttransform
+        mat = view_invariant_transform(mat)
+        # select the hand joint
+        mat = mat[:,self.hand_joint,:]
         # data augmentation
-        # mat = self.random_augmentation(mat)
-        # T J D
-        # get images
-        images = list()
-        # TODO: just make it run
-        for i in image_indices:
-            img = self._load_image(record.path, i)
-            images.extend(img)
-        
+        mat = self.random_augmentation(mat)
+
+        # get the four corner
+        x = MatForImage[:,:,0]
+        y = MatForImage[:,:,1]
+        min_x =  int(np.min(x[x>0]))
+        min_y =  int(np.min(y[y>0]))
+        max_x = int(np.max(x[x>0]))
+        max_y = int(np.max(y[y>0]))
+        min_x,min_y,max_x,max_y = self.random_generate_min(min_x,min_y,max_x,max_y)
+        MatForImage = MatForImage-np.array([min_x,min_y])
+        MatForImage = MatForImage/np.array([max_x-min_x,max_y-min_y])
+
+        # generate heatmaps
         heat_maps = []
-        for i in range(mat.shape[0]):
+        for i in range(MatForImage.shape[0]):
             heat_map =[]
-            for j in range(mat.shape[1]):
-                x,y = mat[i,j,:]
+            for j in range(MatForImage.shape[1]):
+                x,y = MatForImage[i,j,:]
                 z = self.generate_gaussian(x,y)
                 # if j==0:
                 #     plt.subplot(4,4,i+1)
@@ -134,7 +142,15 @@ class iSLR_Dataset(data.Dataset):
         # plt.show()
         heat_maps = np.stack(heat_maps,0)
     
+        # get images
+        images = list()
+        for i,ind in enumerate(image_indices):
+            img = self._load_image(record.path, i)
+            img = crop_img(img,min_x,min_y,max_x,max_y)
+            images.extend(img)
+        
         images = self.transform(images)
+        
         return mat, images, heat_maps, record.label
 
     def __len__(self):
@@ -158,13 +174,14 @@ class iSLR_Dataset(data.Dataset):
 
                 Z = np.exp(-fac/2)/N
                 Z = (Z-Z.min())/(Z.max()-Z.min())
+                if Z.max()-Z.min()==0:
+                    print("waring, div zero")
+                    Z = (Z-Z.min())/(Z.max()-Z.min()+1e-6)
                 return Z
         N = 7
         X = np.linspace(0,1,N)
         Y = np.linspace(0,1,N)
         X,Y = np.meshgrid(X,Y)
-        x = x/self.width
-        y = y/self.height
         mu = np.array([x,y])
         Sigma = np.array([[0.01,0],[0,0.01]])
         pos = np.empty(X.shape+(2,))
@@ -181,22 +198,71 @@ class iSLR_Dataset(data.Dataset):
             mat = self.random_jitter(mat)
         elif choice[1]==1:
             mat = self.random_shift(mat)
+        return mat
 
     def random_jitter(self,mat):
         # input: T J D
-        jitter_amp = 10
+        jitter_amp = 5
         delta  = np.random.randint(0,jitter_amp,mat.shape)
         mat = mat+delta
-        mat[:,:,0] = np.clip(mat[:,:,0],0,self.width)
-        mat[:,:,1] = np.clip(mat[:,:,1],0,self.height)
         return mat
 
     def random_shift(self,mat):
-        shift_amp = 50
+        shift_amp = 20
         xshift = np.random.randint(-shift_amp,shift_amp)
         yshift = np.random.randint(-shift_amp,shift_amp)
         mat[:,:,0] = mat[:,:,0]+xshift
         mat[:,:,1] = mat[:,:,1]+yshift
-        mat[:,:,0] = np.clip(mat[:,:,0],0,self.width)
-        mat[:,:,1] = np.clip(mat[:,:,1],0,self.height)
         return mat
+
+    def random_generate_min(self,min_x,min_y,max_x,max_y):
+        min_thre = 20
+        max_thre = 60
+        random_x = np.random.randint(min_thre,max_thre)
+        random_y = np.random.randint(min_thre,max_thre)
+        min_x = max(min_x-random_x,0)
+        min_y = max(min_y-random_y,0)
+        max_x = min(max_x+random_x,self.width)
+        max_y = min(max_y+random_y,self.height)
+        return min_x,min_y,max_x,max_y
+
+def view_invariant_transform(mat):
+    '''
+      @params mat: T J D
+    '''
+    index1 = 12
+    index2 = 16
+    new_mat = np.zeros(mat.shape)
+    for i in range(mat.shape[0]):
+        delta_x,delta_y = mat[i,index2,:]-mat[i,index1,:]
+        center_x,center_y = 0.5*(mat[i,index2,:]+mat[i,index1,:])
+        length = (delta_x*delta_x+delta_y*delta_y)**0.5
+        cos_theta = delta_x/length
+        sin_theta = delta_y/length
+        T = np.array([
+            [cos_theta,-sin_theta],
+            [-sin_theta,-cos_theta]
+        ])
+        t = np.array([center_x,center_y])
+        # 对一帧中所有坐标进行具有视角不变性的变换
+        # x'=Tx
+        # origin_coord: J D
+        origin_coord = mat[i,:,:]-t
+        new_coord = np.matmul(T,origin_coord.transpose())
+        new_coord = new_coord.transpose()
+        new_mat[i,:,:] = new_coord
+    return new_mat
+
+
+def crop_img(image,min_x,min_y,max_x,max_y):
+    '''
+        @param image: PIL.Image
+    '''
+    new_image = []
+    for img in image:
+        img = np.array(img)
+        print(img.shape)
+        img = img[min_y:max_y,min_x:max_x]
+        img = Image.fromarray(img)
+        new_image.append(img)
+    return new_image
