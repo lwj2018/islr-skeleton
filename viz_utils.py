@@ -21,7 +21,7 @@ def attentionmap_visualize(input, attention_map):
     input = input.detach().cpu().numpy()
     attention_map = attention_map.detach().cpu().numpy()
     input = input.reshape([-1,3,input.shape[2],input.shape[3]])
-    input = input[[12,14,16,18],...]
+    # input = input[[12,14,16,18],...]
     input = input.transpose([0,2,3,1])
     attention_map = attention_map.transpose([0,2,3,1])
     for i,(image, att_map) in enumerate(zip(input, attention_map)):
@@ -36,7 +36,7 @@ def attentionmap_visualize(input, attention_map):
         att_map = att_map.resize((width, height), Image.BICUBIC)
         att_map = np.array(att_map)
         no_trans_map,  map_on_image = apply_colormap_on_image(image, att_map, 'hsv')
-        plt.subplot(2,2,i+1)
+        plt.subplot(4,8,i+1)
         plt.imshow(map_on_image)
     plt.show()
 

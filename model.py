@@ -55,13 +55,13 @@ class islr_model(nn.Module):
             N,T,J,D = out.size()
             out = out.view(N,T,-1)
             out = l2norm(out,2)
-            print("out {}".format(out))
+            # print("out.max {}".format(out.max()))
             # N T(T/16) C1
 
             f = self.cnn_forward(image,heatmap)
             out_c = self.cnn_classifier.get_feature(f)
             out_c = l2norm(out_c,2)
-            print("outc {}".format(out_c))
+            # print("outc {}".format(out_c))
             # N T(T/16) C2
 
             out = self.late_fusion(out,out_c)
@@ -69,12 +69,10 @@ class islr_model(nn.Module):
         elif train_mode=='simple_fusion':
             f = self.skeleton_model.get_feature(input)
             out = self.skeleton_model.classify(f)
-            print("out {}".format(out))
             # out = F.softmax(out,1)
 
 
             out_c = self.cnn_model(image)
-            print("out_c {}".format(out_c))
             # out_c = F.softmax(out_c,1)
 
             out = torch.stack([out,out_c],2)
@@ -92,6 +90,8 @@ class islr_model(nn.Module):
         conv_out = self.cnn_model.base_model.get_conv_out(image)
         # use heatmap
         _f_list = []
+        N,C,K,K = conv_out.size()
+        heatmap = F.upsample(heatmap,size=(K,K),mode='bilinear').contiguous()
         for i in range(heatmap.size(1)):
             _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
             _f = F.adaptive_avg_pool2d(_f,[1,1]).squeeze()
@@ -144,7 +144,7 @@ class late_fusion(nn.Module):
         return out
 
 def l2norm(vector,dim):
-    l2norm = torch.sum(torch.pow(vector,2),dim)
+    l2norm = torch.pow(torch.sum(torch.pow(vector,2),dim),0.5)
     vector = vector/(l2norm.unsqueeze(dim)+1e-6)
     return vector
 

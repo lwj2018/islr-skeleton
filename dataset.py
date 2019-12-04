@@ -67,13 +67,17 @@ class iSLR_Dataset(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        # indices = np.linspace(1,num_frames-1,self.length).astype(int)
-        skeleton_indices = np.linspace(1,num_frames-1,self.length).astype(int)
-        image_indices = np.linspace(1,num_frames-1,self.image_length).astype(int)
-        # interval = num_frames-1//self.length
-        # jitter = np.random.randint(0,interval,self.length)
-        # jitter = (np.random.rand(self.length)*interval).astype(int)
-        # indices = np.sort(indices+jitter)
+        indices = np.linspace(1,num_frames-1,self.length).astype(int)
+        interval = (num_frames-1)//self.length
+        if interval>0:
+            jitter = np.random.randint(0,interval,self.length)
+        else:
+            jitter = 0
+        jitter = (np.random.rand(self.length)*interval).astype(int)
+        indices = np.sort(indices+jitter)
+        indices = np.clip(indices,0,num_frames-1)
+        skeleton_indices = indices
+        image_indices = indices
         return skeleton_indices,image_indices
     
     def _load_data(self, filename):
@@ -107,24 +111,31 @@ class iSLR_Dataset(data.Dataset):
         skeleton_indices,image_indices = self.get_sample_indices(num_frames)
         mat = mat[skeleton_indices,:,:]
         # mat: T J D
-        MatForImage = mat
-        # view invarianttransform
-        mat = view_invariant_transform(mat)
-        # select the hand joint
-        mat = mat[:,self.hand_joint,:]
-        # data augmentation
-        mat = self.random_augmentation(mat)
+        
+        augmentation = 1
+        if augmentation:
+            MatForImage = mat[:,self.hand_joint,:]
+            # view invarianttransform
+            mat = view_invariant_transform(mat)
+            # select the hand joint
+            mat = mat[:,self.hand_joint,:]
+            # data augmentation
+            mat = self.random_augmentation(mat)
 
-        # get the four corner
-        x = MatForImage[:,:,0]
-        y = MatForImage[:,:,1]
-        min_x =  int(np.min(x[x>0]))
-        min_y =  int(np.min(y[y>0]))
-        max_x = int(np.max(x[x>0]))
-        max_y = int(np.max(y[y>0]))
-        min_x,min_y,max_x,max_y = self.random_generate_min(min_x,min_y,max_x,max_y)
-        MatForImage = MatForImage-np.array([min_x,min_y])
-        MatForImage = MatForImage/np.array([max_x-min_x,max_y-min_y])
+            # get the four corner
+            x = MatForImage[:,:,0]
+            y = MatForImage[:,:,1]
+            min_x =  int(np.min(x[x>0]))
+            min_y =  int(np.min(y[y>0]))
+            max_x = int(np.max(x[x>0]))
+            max_y = int(np.max(y[y>0]))
+            min_x,min_y,max_x,max_y = self.random_generate_min(min_x,min_y,max_x,max_y)
+            MatForImage = MatForImage-np.array([min_x,min_y])
+            MatForImage = MatForImage/np.array([max_x-min_x,max_y-min_y])
+        else:
+            mat = mat[:,self.hand_joint,:]
+            MatForImage = mat
+            MatForImage = MatForImage/np.array([self.width,self.height])
 
         # generate heatmaps
         heat_maps = []
@@ -145,8 +156,11 @@ class iSLR_Dataset(data.Dataset):
         # get images
         images = list()
         for i,ind in enumerate(image_indices):
-            img = self._load_image(record.path, i)
-            img = crop_img(img,min_x,min_y,max_x,max_y)
+            img = self._load_image(record.path, ind)
+            if augmentation:
+                img = crop_img(img,min_x,min_y,max_x,max_y)
+            else:
+                pass
             images.extend(img)
         
         images = self.transform(images)
@@ -178,7 +192,7 @@ class iSLR_Dataset(data.Dataset):
                     print("waring, div zero")
                     Z = (Z-Z.min())/(Z.max()-Z.min()+1e-6)
                 return Z
-        N = 7
+        N = 10
         X = np.linspace(0,1,N)
         Y = np.linspace(0,1,N)
         X,Y = np.meshgrid(X,Y)
@@ -196,13 +210,13 @@ class iSLR_Dataset(data.Dataset):
         choice = np.random.randint(0,2,4)
         if choice[0]==1:
             mat = self.random_jitter(mat)
-        elif choice[1]==1:
-            mat = self.random_shift(mat)
+        # elif choice[1]==1:
+        #     mat = self.random_shift(mat)
         return mat
 
     def random_jitter(self,mat):
         # input: T J D
-        jitter_amp = 5
+        jitter_amp = 10
         delta  = np.random.randint(0,jitter_amp,mat.shape)
         mat = mat+delta
         return mat
@@ -216,8 +230,8 @@ class iSLR_Dataset(data.Dataset):
         return mat
 
     def random_generate_min(self,min_x,min_y,max_x,max_y):
-        min_thre = 20
-        max_thre = 60
+        min_thre = 100
+        max_thre = 200
         random_x = np.random.randint(min_thre,max_thre)
         random_y = np.random.randint(min_thre,max_thre)
         min_x = max(min_x-random_x,0)
@@ -261,7 +275,6 @@ def crop_img(image,min_x,min_y,max_x,max_y):
     new_image = []
     for img in image:
         img = np.array(img)
-        print(img.shape)
         img = img[min_y:max_y,min_x:max_x]
         img = Image.fromarray(img)
         new_image.append(img)

@@ -200,7 +200,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # visualize heatmap
         # tmp = heatmap.view((-1,)+heatmap.size()[-3:])
-        # attentionmap_visualize(image,tmp[[12,14,16,18],0,:,:].unsqueeze(1))
+        # attentionmap_visualize(image,tmp[[12,14,16,18],2,:,:].unsqueeze(1))
+        # attentionmap_visualize(image,tmp[:,1,:,:].unsqueeze(1))
         # compute output
         output = model(input_var,image,heatmap,train_mode=args.train_mode)
         loss = criterion(output, target_var)
