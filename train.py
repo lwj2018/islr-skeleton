@@ -101,9 +101,9 @@ def main():
             length=args.length,
             image_length=args.image_length,
             transform=torchvision.transforms.Compose([
-                # GroupScale((crop_size,crop_size)),
-                GroupScale(int(scale_size)),
-                GroupCenterCrop(crop_size),
+                GroupScale((crop_size,crop_size)),
+                # GroupScale(int(scale_size)),
+                # GroupCenterCrop(crop_size),
                 Stack(roll=False),
                 ToTorchFormatTensor(div=True),
                 normalize,
@@ -119,9 +119,9 @@ def main():
             length=args.length,
             image_length=args.image_length,
             transform=torchvision.transforms.Compose([
-                # GroupScale((crop_size,crop_size)),
-                GroupScale(int(scale_size)),
-                GroupCenterCrop(crop_size),
+                GroupScale((crop_size,crop_size)),
+                # GroupScale(int(scale_size)),
+                # GroupCenterCrop(crop_size),
                 Stack(roll=False),
                 ToTorchFormatTensor(div=True),
                 normalize,
@@ -147,7 +147,7 @@ def main():
     global writer
     writer = SummaryWriter(comment=args.store_name)
 
-    # prec1 = validate(val_loader, model, criterion, 0 // args.eval_freq)
+    # prec1,prec5 = validate(val_loader, model, criterion, 0 // args.eval_freq)
 
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)
@@ -200,8 +200,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # visualize heatmap
         # tmp = heatmap.view((-1,)+heatmap.size()[-3:])
-        # attentionmap_visualize(image,tmp[[12,14,16,18],2,:,:].unsqueeze(1))
-        # attentionmap_visualize(image,tmp[:,1,:,:].unsqueeze(1))
+        # attentionmap_visualize(image,tmp[[12,14,16,18],6,:,:].unsqueeze(1))
+        # attentionmap_visualize(image,tmp[:,6,:,:].unsqueeze(1))
         # compute output
         output = model(input_var,image,heatmap,train_mode=args.train_mode)
         loss = criterion(output, target_var)
@@ -303,8 +303,9 @@ def validate(val_loader, model, criterion, epoch):
     output = ('Testing Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'
           .format(top1=top1, top5=top5, loss=losses))
     print(output)
-    output_best = '\nBest Prec@1: %.3f'%(best_prec1)
+    output_best = '\nBest Prec@1: %.3f Best Prec@5: %.3f'%(best_prec1,best_prec5)
     print(output_best)
+    print("train mode: %s",args.train_mode)
 
     return top1.avg, top5.avg
 
@@ -342,6 +343,8 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+
 
 def collate(batch):
     '''
@@ -383,21 +386,23 @@ def resume_model(model, skeleton_resume, cnn_resume):
     cnn_state_dict = cnn_checkpoint['state_dict']
     model_statedict = model.state_dict()
     if args.train_mode == "late_fusion":
-        skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
-                skeleton_state_dict.items() if not "fc" in k}
+        # skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
+        #         skeleton_state_dict.items() if not "fc" in k}
+        skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
+                skeleton_state_dict.items() if not "fc" in k and not "cnn" in k}
         cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
                 cnn_state_dict.items() if not ("fc" in k  )}
         model_statedict.update(skeleton_restore_params)
         model_statedict.update(cnn_restore_params)
         model.load_state_dict(model_statedict)
     elif args.train_mode == "simple_fusion":
-        # skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
-        #         skeleton_state_dict.items()}
-        # cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
-        #         cnn_state_dict.items()}
-        # model_statedict.update(skeleton_restore_params)
-        # model_statedict.update(cnn_restore_params)
-        # model.load_state_dict(model_statedict)
+        skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
+                skeleton_state_dict.items() if not "cnn" in k}
+        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
+                cnn_state_dict.items()}
+        model_statedict.update(skeleton_restore_params)
+        model_statedict.update(cnn_restore_params)
+        model.load_state_dict(model_statedict)
         pass
 
     return model

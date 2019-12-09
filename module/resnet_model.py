@@ -92,6 +92,8 @@ class Bottleneck(nn.Module):
         if not self.cbam is None:
             out = self.cbam(out)
             self.attention_map = self.cbam.attention_map
+        else:
+            print("do not have cbam")
 
         out += residual
         out = self.relu(out)

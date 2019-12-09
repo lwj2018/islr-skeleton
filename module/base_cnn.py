@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import models
 from torch.nn import functional as F
+from torch.nn import init
 
 class base_cnn(nn.Module):
 
@@ -75,21 +76,25 @@ class cnn_classifier(nn.Module):
         self.conv3 = nn.Sequential(
             nn.Conv1d(img_feature_dim,img_feature_dim//4,3,1,padding=1),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.MaxPool1d(2)
         )
         self.conv4 = nn.Sequential(
             nn.Conv1d(img_feature_dim//4,img_feature_dim,3,1,padding=1),
             nn.ReLU(),
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.MaxPool1d(2)
         )
         self.fc1 = nn.Sequential(
             nn.Linear(img_feature_dim*length//16,1024),
             nn.ReLU(),
-            nn.Dropout(p=0.5)
+            # nn.Dropout(p=0.5)
         )
         self.fc2 = nn.Linear(1024,num_class)
+        
+        # print("conv1 weight {}".format(self.conv1[0].weight))
+        # print("conv1 weight.max {}".format(self.conv1[0].weight.max()))
+        # print("conv1 weight.min {}".format(self.conv1[0].weight.min()))
 
     def forward(self, input):
         N,T,C = input.size()

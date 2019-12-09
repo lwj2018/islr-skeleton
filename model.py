@@ -46,8 +46,9 @@ class islr_model(nn.Module):
             out = self.skeleton_model(input)
 
         elif train_mode=="single_rgb":
-            f = self.cnn_forward(image,heatmap)
-            out = self.cnn_classifier(f)
+            # f = self.cnn_forward(image,heatmap)
+            # out = self.cnn_classifier(f)
+            out = self.cnn_model(image)
         
         elif train_mode=="late_fusion":
             out = self.skeleton_model.get_feature(input)
@@ -55,13 +56,13 @@ class islr_model(nn.Module):
             N,T,J,D = out.size()
             out = out.view(N,T,-1)
             out = l2norm(out,2)
-            # print("out.max {}".format(out.max()))
+            # print("out {}".format(out))
             # N T(T/16) C1
 
             f = self.cnn_forward(image,heatmap)
             out_c = self.cnn_classifier.get_feature(f)
             out_c = l2norm(out_c,2)
-            # print("outc {}".format(out_c))
+            # print("out_c {}".format(out_c))
             # N T(T/16) C2
 
             out = self.late_fusion(out,out_c)
@@ -69,15 +70,18 @@ class islr_model(nn.Module):
         elif train_mode=='simple_fusion':
             f = self.skeleton_model.get_feature(input)
             out = self.skeleton_model.classify(f)
+            out = l2norm(out,1)
             # out = F.softmax(out,1)
 
 
             out_c = self.cnn_model(image)
+            out_c = l2norm(out_c,1)
+
             # out_c = F.softmax(out_c,1)
 
             out = torch.stack([out,out_c],2)
             out = F.adaptive_avg_pool1d(out,1).squeeze(2)
-            print("final_out {}".format(out))
+            # print("final_out {}".format(out))
 
         return out
 
@@ -144,7 +148,10 @@ class late_fusion(nn.Module):
         return out
 
 def l2norm(vector,dim):
-    l2norm = torch.pow(torch.sum(torch.pow(vector,2),dim),0.5)
+    l2sum = torch.sum(torch.pow(vector,2),dim)
+    # if (l2sum<=0.0001).any():
+    #     print("fuck {}".format(l2sum))
+    l2norm = torch.pow(l2sum,0.5)
     vector = vector/(l2norm.unsqueeze(dim)+1e-6)
     return vector
 
