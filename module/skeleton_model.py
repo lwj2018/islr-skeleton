@@ -18,6 +18,7 @@ class skeleton_model(nn.Module):
             nn.ReLU()
             )
         self.conv2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
+        self.conv_att = nn.Conv1d(32*self.num_joint,1,3,1,padding=1)
         self.conv3 = nn.Sequential(
             nn.Conv2d(self.num_joint,32,3,1,padding=1),
             nn.MaxPool2d(2)
@@ -33,6 +34,7 @@ class skeleton_model(nn.Module):
             nn.ReLU()
             )
         self.convm2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
+        self.convm_att = nn.Conv1d(32*self.num_joint,1,3,1,padding=1)
         self.convm3 = nn.Sequential(
             nn.Conv2d(self.num_joint,32,3,1,padding=1),
             nn.MaxPool2d(2)
@@ -68,7 +70,7 @@ class skeleton_model(nn.Module):
         return output
 
     def get_feature(self,input):
-        # input: N D T J
+        # input: N J T D
         input = input.permute(0,3,1,2)
         N, D, T, J = input.size()
         motion = input[:,:,1::,:]-input[:,:,0:-1,:]
@@ -77,12 +79,22 @@ class skeleton_model(nn.Module):
         out = self.conv1(input)
         out = self.conv2(out)
         out = out.permute(0,3,2,1).contiguous()
+        # out: N J T D
+        out_for_att = (out.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        att = self.conv_att(out_for_att).unsqueeze(3)
+        att = torch.sigmoid(att)
+        out = out*att
         out = self.conv3(out)
         out = self.conv4(out)
 
         outm = self.convm1(motion)
         outm = self.convm2(outm)
         outm = outm.permute(0,3,2,1).contiguous()
+        # outm: N J T D
+        outm_for_att = (outm.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        attm = self.convm_att(outm_for_att).unsqueeze(3)
+        attm = torch.sigmoid(attm)
+        outm = outm*attm
         outm = self.convm3(outm)
         outm = self.convm4(outm)
 

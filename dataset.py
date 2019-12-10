@@ -204,6 +204,7 @@ class iSLR_Dataset(data.Dataset):
 
         p2 = Distribution(mu,Sigma)
         Z = p2.two_d_gaussian(pos)
+        del p2
         return Z
 
     def random_augmentation(self,mat):

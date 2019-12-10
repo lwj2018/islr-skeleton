@@ -13,7 +13,7 @@ parser.add_argument("--val_file",type=str,
 parser.add_argument('--root_model', type=str, 
                     default='models')
 parser.add_argument('--train_mode', type=str, 
-                    default='late_fusion',
+                    default='single_skeleton',
                     choices=['single_rgb','single_skeleton','late_fusion','simple_fusion'])
 # remember to change when switch to server
 parser.add_argument('--gpus', type=str, 
@@ -32,7 +32,7 @@ parser.add_argument('--epochs', default=10000, type=int, metavar='N',
 # remember to change when switch to server
 parser.add_argument('-b', '--batch-size', default=8, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
-parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[10000], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')
@@ -52,9 +52,11 @@ parser.add_argument('--eval-freq', '-ef', default=5, type=int,
 
 # ========================= Runtime Configs ==========================
 # workers 原默认值为30
-parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
                     help='number of data loading workers (default: 16)')
-parser.add_argument('--resume', default=r'models/iSLR_late_fusion_class500_best.pth.tar', type=str, metavar='PATH',
+# parser.add_argument('--resume', default=r'models/iSLR_late_fusion_class500_best.pth.tar', type=str, metavar='PATH',
+#                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
+parser.add_argument('--resume', default=r'', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
 parser.add_argument('--val_resume', 
         default=r'models/81.243%iSLR_single_skeleton_class500_best.pth.tar', type=str, metavar='PATH',
