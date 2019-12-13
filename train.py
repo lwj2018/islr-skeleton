@@ -60,7 +60,7 @@ def main():
     
     create_path(args.root_model)
     # get model 
-    model = islr_model(args.num_class)
+    model = islr_model(args.num_class,train_mode=args.train_mode)
     policies = model.get_optim_policies()
     # resume model
     model = resume_model(model,args.skeleton_resume,args.cnn_resume)
@@ -305,7 +305,7 @@ def validate(val_loader, model, criterion, epoch):
     print(output)
     output_best = '\nBest Prec@1: %.3f Best Prec@5: %.3f'%(best_prec1,best_prec5)
     print(output_best)
-    print("train mode: %s",args.train_mode)
+    print("train mode: %s"%args.train_mode)
 
     return top1.avg, top5.avg
 
@@ -403,7 +403,11 @@ def resume_model(model, skeleton_resume, cnn_resume):
         model_statedict.update(skeleton_restore_params)
         model_statedict.update(cnn_restore_params)
         model.load_state_dict(model_statedict)
-        pass
+    elif args.train_mode == "single_rgb" or args.train_mode=="rgb":
+        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
+                cnn_state_dict.items()}
+        model_statedict.update(cnn_restore_params)
+        model.load_state_dict(model_statedict)
 
     return model
 

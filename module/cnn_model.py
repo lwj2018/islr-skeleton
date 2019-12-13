@@ -240,6 +240,45 @@ class cnn_model(nn.Module):
         
         return output
 
+    def forward_with_heatmap(self, input, heatmap):
+        if self.modality == 'RGB':
+            sample_len = 3
+        conv_out = self.base_model.get_conv_out(input.view( (-1, sample_len) + input.size()[-2:]) )
+
+        # use heatmap
+        _f_list = []
+        N,C,K,K = conv_out.size()
+        heatmap = F.upsample(heatmap,size=(K,K),mode='bilinear').contiguous()
+
+        for i in range(heatmap.size(1)):
+            plt.subplot(2,5,i+1)
+            plt.imshow(heatmap.detach().cpu().numpy()[0,i,...])
+        plt.show()
+
+        for i in range(heatmap.size(1)):
+            _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
+            _f_list.append(_f)
+        x,_ = torch.max(torch.stack(_f_list,0),0)      
+
+        # pool,flatten and fc
+        if self.base_model.network_type == "ImageNet":
+            x = self.base_model.avgpool(x)
+        else:
+            x = F.avg_pool2d(x, 4)
+        x = x.view(x.size(0), -1)
+        x = self.base_model.fc(x)  
+        base_out = x
+
+        if self.dropout > 0:
+            base_out = self.new_fc(base_out)
+
+        base_out = base_out.view( (input.size(0),-1) )
+        if self.first_fc is not None:
+            base_out = self.first_fc(base_out)
+        output = self.final_fc(base_out)
+        
+        return output
+
     @property
     def crop_size(self):
         return self.input_size

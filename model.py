@@ -13,7 +13,7 @@ class islr_model(nn.Module):
 
     def __init__(self, num_class, in_channel=2,
                             length=32,num_joint=10,modality='rgb',
-                            cnn_type='resnet18'):
+                            cnn_type='resnet18',train_mode='simple_fusion'):
         # T N D
         super(islr_model, self).__init__()
         self.num_class = num_class
@@ -21,12 +21,19 @@ class islr_model(nn.Module):
         self.length = length
         self.num_joint = num_joint
         self.modality = modality
-        self.get_skeleton_model()
-        self.get_cnn_model(cnn_type)
-        self.cnn_classifier = cnn_classifier(
-            num_class=num_class,
-            length=length)
-        self.late_fusion = late_fusion(num_class)
+        self.train_mode = train_mode
+
+        if self.train_mode=="single_skeleton" or "fusion" in self.train_mode:
+            self.get_skeleton_model()
+        if self.train_mode=="single_rgb" or "fusion" in self.train_mode:
+            self.get_cnn_model(cnn_type)
+            self.cnn_classifier = cnn_classifier(
+                num_class=num_class,
+                length=length)
+        if self.train_mode=="late_fusion":
+            self.late_fusion = late_fusion(num_class)
+        elif self.train_mode=="simple_fusion":
+            self.simple_fusion = simple_fusion(num_class)
 
 
     def get_cnn_model(self,cnn_type ):
@@ -48,6 +55,9 @@ class islr_model(nn.Module):
         elif train_mode=="single_rgb":
             # f = self.cnn_forward(image,heatmap)
             # out = self.cnn_classifier(f)
+            out = self.cnn_model.forward_with_heatmap(image,heatmap)
+
+        elif train_mode=="rgb":
             out = self.cnn_model(image)
         
         elif train_mode=="late_fusion":
@@ -68,19 +78,15 @@ class islr_model(nn.Module):
             out = self.late_fusion(out,out_c)
         
         elif train_mode=='simple_fusion':
-            f = self.skeleton_model.get_feature(input)
-            out = self.skeleton_model.classify(f)
+            out = self.skeleton_model(input)
             out = l2norm(out,1)
-            # out = F.softmax(out,1)
 
-
-            out_c = self.cnn_model(image)
+            out_c = self.cnn_model.forward_with_heatmap(image,heatmap)
             out_c = l2norm(out_c,1)
 
-            # out_c = F.softmax(out_c,1)
-
             out = torch.stack([out,out_c],2)
-            out = F.adaptive_avg_pool1d(out,1).squeeze(2)
+            # out = F.adaptive_avg_pool1d(out,1).squeeze(2)
+            out = self.simple_fusion(out)
             # print("final_out {}".format(out))
 
         return out
@@ -143,6 +149,21 @@ class late_fusion(nn.Module):
         out = torch.cat([input,input_c],2)
         # TODO what is N?
         out = out.view(N,-1)
+        out = self.fusion1(out)
+        out = self.fusion2(out)
+        return out
+
+class simple_fusion(nn.Module):
+    def __init__(self,num_class):
+        self.num_class = num_class
+        super(simple_fusion,self).__init__()
+        self.fusion1 = nn.Sequential(
+            nn.Linear(2*self.num_class,500),
+            nn.ReLU(),
+            nn.Dropout(p=0.5))
+        self.fusion2 = nn.Linear(500,self.num_class)
+
+    def forward(self,input):
         out = self.fusion1(out)
         out = self.fusion2(out)
         return out

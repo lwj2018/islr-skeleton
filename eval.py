@@ -162,7 +162,6 @@ def validate(val_loader, model, criterion, epoch):
                     i, len(val_loader), batch_time=batch_time, loss=losses,
                     top1=top1, top5=top5))
                 print(output)
-            save_cmat(cmat.sum)
 
 
     output = ('Testing Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'

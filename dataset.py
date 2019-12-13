@@ -77,7 +77,7 @@ class iSLR_Dataset(data.Dataset):
         indices = np.sort(indices+jitter)
         indices = np.clip(indices,0,num_frames-1)
         skeleton_indices = indices
-        image_indices = indices
+        image_indices = indices[::2]
         return skeleton_indices,image_indices
     
     def _load_data(self, filename):
@@ -109,12 +109,12 @@ class iSLR_Dataset(data.Dataset):
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         skeleton_indices,image_indices = self.get_sample_indices(num_frames)
+        MatForImage = mat[image_indices,:,:]
         mat = mat[skeleton_indices,:,:]
         # mat: T J D
         
         augmentation = 1
         if augmentation:
-            MatForImage = mat[:,self.hand_joint,:]
             # view invarianttransform
             mat = view_invariant_transform(mat)
             # select the hand joint
@@ -122,6 +122,7 @@ class iSLR_Dataset(data.Dataset):
             # data augmentation
             mat = self.random_augmentation(mat)
 
+            MatForImage = MatForImage[:,self.hand_joint,:]
             # get the four corner
             x = MatForImage[:,:,0]
             y = MatForImage[:,:,1]
