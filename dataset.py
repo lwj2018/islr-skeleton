@@ -77,7 +77,7 @@ class iSLR_Dataset(data.Dataset):
         indices = np.sort(indices+jitter)
         indices = np.clip(indices,0,num_frames-1)
         skeleton_indices = indices
-        image_indices = indices[::2]
+        image_indices = indices[::1]
         return skeleton_indices,image_indices
     
     def _load_data(self, filename):

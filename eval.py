@@ -59,7 +59,7 @@ def main():
 
     create_path(args.root_model)
     # get model 
-    model = islr_model(args.num_class)
+    model = islr_model(args.num_class,train_mode=args.train_mode)
 
     model = torch.nn.DataParallel(model).cuda()
 

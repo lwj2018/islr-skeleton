@@ -37,7 +37,7 @@ def attentionmap_visualize(input, attention_map):
         att_map = np.array(att_map)
         no_trans_map,  map_on_image = apply_colormap_on_image(image, att_map, 'hsv')
         plt.subplot(4,8,i+1)
-        plt.imshow(map_on_image)
+        plt.imshow(image)
     plt.show()
 
 def apply_colormap_on_image(org_im, activation, colormap_name):

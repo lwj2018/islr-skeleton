@@ -13,7 +13,7 @@ parser.add_argument("--val_file",type=str,
 parser.add_argument('--root_model', type=str, 
                     default='models')
 parser.add_argument('--train_mode', type=str, 
-                    default='simple_fusion',
+                    default='single_skeleton',
                     choices=['rgb','single_rgb','single_skeleton','late_fusion','simple_fusion'])
 # remember to change when switch to server
 parser.add_argument('--gpus', type=str, 
@@ -30,7 +30,7 @@ parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=10000, type=int, metavar='N',
                     help='number of total epochs to run')
 # remember to change when switch to server
-parser.add_argument('-b', '--batch-size', default=16, type=int,
+parser.add_argument('-b', '--batch-size', default=32, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
 parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
                     metavar='LR', help='initial learning rate')
@@ -53,13 +53,13 @@ parser.add_argument('--eval-freq', '-ef', default=5, type=int,
 # ========================= Runtime Configs ==========================
 # workers 原默认值为30
 parser.add_argument('-j', '--workers', default=32, type=int, metavar='N',
-                    help='number of data loading workers (default: 16)')
+                    help='number of data loading workers (default: 32)')
 # parser.add_argument('--resume', default=r'models/iSLR_late_fusion_class500_best.pth.tar', type=str, metavar='PATH',
 #                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
-parser.add_argument('--resume', default=r'models/iSLR_simple_fusion_class500_best.pth.tar', type=str, metavar='PATH',
+parser.add_argument('--resume', default=r'', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
 parser.add_argument('--val_resume', 
-        default=r'models/iSLR_simple_fusion_class500_best.pth.tar', type=str, metavar='PATH',
+        default=r'models/iSLR_single_skeleton_class500_best.pth.tar', type=str, metavar='PATH',
         help='path to latest checkpoint (default: none)')
 # parser.add_argument('--skeleton_resume', 
 #         default='models/iSLR_skeleton_class500_best.pth.tar', type=str)

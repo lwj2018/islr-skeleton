@@ -140,7 +140,8 @@ def main():
     #                             momentum=args.momentum,
     #                             weight_decay=args.weight_decay)
     optimizer = torch.optim.Adam(policies,
-                                    args.lr)
+                                    args.lr,
+                                    weight_decay=args.weight_decay)
     # optimizer = torch.optim.Adam(policies,
     #                                 args.lr)
     # get writer
@@ -222,7 +223,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
-        #     print(total_norm,args.clip_gradient)
+            # print(total_norm,args.clip_gradient)
             # if total_norm > args.clip_gradient:
                 # print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
 
@@ -380,36 +381,61 @@ def collate(batch):
     return torch.stack(fts, 0), torch.cat(targets, 0), torch.Tensor(len_list)
 
 def resume_model(model, skeleton_resume, cnn_resume):
-    skeleton_checkpoint = torch.load(skeleton_resume)
-    cnn_checkpoint = torch.load(cnn_resume)
-    skeleton_state_dict = skeleton_checkpoint['state_dict']
-    cnn_state_dict = cnn_checkpoint['state_dict']
     model_statedict = model.state_dict()
-    if args.train_mode == "late_fusion":
-        # skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
-        #         skeleton_state_dict.items() if not "fc" in k}
-        skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
-                skeleton_state_dict.items() if not "fc" in k and not "cnn" in k}
-        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
-                cnn_state_dict.items() if not ("fc" in k  )}
-        model_statedict.update(skeleton_restore_params)
-        model_statedict.update(cnn_restore_params)
-        model.load_state_dict(model_statedict)
-    elif args.train_mode == "simple_fusion":
-        skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
-                skeleton_state_dict.items() if not ("cnn" in k or "fusion" in k)}
-        cnn_restore_params = {".".join(k.split(".")[1:]):v for k,v in
-                cnn_state_dict.items() if not ("skeleton" in k or "fusion" in k)}
-        model_statedict.update(skeleton_restore_params)
-        model_statedict.update(cnn_restore_params)
-        model.load_state_dict(model_statedict)
+    if "fusion" in args.train_mode:
+        cnn_state_dict = load_cnn(cnn_resume)
+        skeleton_state_dict = load_skeleton(skeleton_resume)
+        if args.train_mode == "late_fusion":
+            # skeleton_restore_params = {".".join(["skeleton_model"]+k.split(".")[1:]):v for k,v in 
+            #         skeleton_state_dict.items() if not "fc" in k}
+            skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
+                    skeleton_state_dict.items() if not "fc" in k and not "cnn" in k}
+            cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
+                    cnn_state_dict.items() if not ("fc" in k  )}
+            model_statedict.update(skeleton_restore_params)
+            model_statedict.update(cnn_restore_params)
+            model.load_state_dict(model_statedict)
+        elif args.train_mode == "simple_fusion":
+            skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
+                    skeleton_state_dict.items() if not ("cnn" in k or "fusion" in k)}
+            cnn_restore_params = {".".join(k.split(".")[1:]):v for k,v in
+                    cnn_state_dict.items() if not ("skeleton" in k or "fusion" in k)}
+            model_statedict.update(skeleton_restore_params)
+            model_statedict.update(cnn_restore_params)
+            model.load_state_dict(model_statedict)
     elif args.train_mode == "single_rgb" or args.train_mode=="rgb":
+        cnn_state_dict = load_cnn(cnn_resume)
         cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
-                cnn_state_dict.items()}
+                cnn_state_dict.items() if not ("skeleton" in k or "fusion" in k)}
         model_statedict.update(cnn_restore_params)
+        model.load_state_dict(model_statedict)
+    elif args.train_mode == "single_skeleton":
+        skeleton_state_dict = load_skeleton(skeleton_resume)
+        skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
+                skeleton_state_dict.items() if "skeleton" in k}
+        model_statedict.update(skeleton_restore_params)
         model.load_state_dict(model_statedict)
 
     return model
+
+def load_cnn(cnn_resume):
+    cnn_checkpoint = torch.load(cnn_resume)
+    cnn_state_dict = cnn_checkpoint['state_dict']
+    print("load cnn model from \n\
+                        %s,\n\
+                        prec1: %.3f"
+                %(cnn_resume,cnn_checkpoint["best_prec1"]))
+    return cnn_state_dict  
+
+def load_skeleton(skeleton_resume):
+    skeleton_checkpoint = torch.load(skeleton_resume)
+    skeleton_state_dict = skeleton_checkpoint['state_dict']
+    print("load skeleton model from \n\
+                        %s,\n\
+                        prec1: %.3f\n\
+                        prec5: %.3f"
+        %(skeleton_resume,skeleton_checkpoint["best_prec1"],skeleton_checkpoint["best_prec5"]))
+    return skeleton_state_dict  
 
 if __name__=="__main__":
     main()

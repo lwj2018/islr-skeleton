@@ -122,30 +122,56 @@ class islr_model(nn.Module):
     def get_optim_policies(self):
         if "rgb" in self.train_mode:
             return [
-            {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+            {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':0,
             'name':"cnn_params"},
         ]
         elif self.train_mode=="single_skeleton":
             return [
-            {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+            {'params':self.skeleton_model.conv1.parameters(),'lr_mult':1,'decay_mult':0,
             'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv2.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv3.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv4.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.convm1.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.convm2.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.convm3.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.convm4.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv5.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv6.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.fc7.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.fc8.parameters(),'lr_mult':1,'decay_mult':0,
+            'name':"skeleton_params"},
+            {'params':self.skeleton_model.conv_att.parameters(),'lr_mult':10,'decay_mult':10,
+            'name':"att_params"},
+            {'params':self.skeleton_model.convm_att.parameters(),'lr_mult':10,'decay_mult':10,
+            'name':"att_params"},
             ]
         elif self.train_mode=="simple_fusion":
             return [
-                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':0,
                 'name':"cnn_params"},
-                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':0,
                 'name':"skeleton_params"},
-                {'params':self.simple_fusion.parameters(),'lr_mult':10,'decay_mult':1,
+                {'params':self.simple_fusion.parameters(),'lr_mult':10,'decay_mult':0,
                 'name':"normal_params"},
             ]
         elif self.train_mode=="late_fusion":
             return [
-                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':0,
                 'name':"cnn_params"},
-                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':0,
                 'name':"skeleton_params"},
-                {'params':self.late_fusion.parameters(),'lr_mult':10,'decay_mult':1,
+                {'params':self.late_fusion.parameters(),'lr_mult':10,'decay_mult':0,
                 'name':"normal_params"},
             ]
 

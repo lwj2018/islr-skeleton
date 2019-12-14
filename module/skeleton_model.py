@@ -23,6 +23,7 @@ class skeleton_model(nn.Module):
             nn.Conv2d(self.num_joint,32,3,1,padding=1),
             nn.MaxPool2d(2)
             )
+        # self.hconv = HierarchyConv()
         self.conv4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=0.5),
@@ -39,6 +40,7 @@ class skeleton_model(nn.Module):
             nn.Conv2d(self.num_joint,32,3,1,padding=1),
             nn.MaxPool2d(2)
             )
+        # self.hconvm = HierarchyConv()
         self.convm4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=0.5),
@@ -81,12 +83,14 @@ class skeleton_model(nn.Module):
         out = out.permute(0,3,2,1).contiguous()
         # out: N J T D
 
-        # out_for_att = (out.permute(0,1,3,2).contiguous()).view(N,-1,T)
-        # att = self.conv_att(out_for_att).unsqueeze(3)
-        # att = torch.sigmoid(att)
-        # out = out*att
+        out_for_att = (out.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        att = self.conv_att(out_for_att).unsqueeze(3)
+        att = torch.sigmoid(att)
+        # print(att)
+        out = out*att
         
         out = self.conv3(out)
+        # out = self.hconv(out)
         out = self.conv4(out)
 
         outm = self.convm1(motion)
@@ -94,12 +98,14 @@ class skeleton_model(nn.Module):
         outm = outm.permute(0,3,2,1).contiguous()
         # outm: N J T D
 
-        # outm_for_att = (outm.permute(0,1,3,2).contiguous()).view(N,-1,T)
-        # attm = self.convm_att(outm_for_att).unsqueeze(3)
-        # attm = torch.sigmoid(attm)
-        # outm = outm*attm
+        outm_for_att = (outm.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        attm = self.convm_att(outm_for_att).unsqueeze(3)
+        attm = torch.sigmoid(attm)
+        # print(attm)
+        outm = outm*attm
 
         outm = self.convm3(outm)
+        # outm = self.hconvm(outm)
         outm = self.convm4(outm)
 
         out = torch.cat((out,outm),dim=1)
@@ -117,4 +123,34 @@ class skeleton_model(nn.Module):
         assert not ((t != t).any())# find out nan in tensor
         assert not (t.abs().sum() == 0) # find out 0 tensor
         # NxC(num_class)
+        return out
+
+class HierarchyConv(nn.Module):
+    def __init__(self):
+        self.conva1 = nn.Conv2d(2,16,3,1,padding=1)
+        self.conva2 = nn.Conv2d(2,16,3,1,padding=1)
+        self.convh1 = nn.Conv2d(3,16,3,1,padding=1)
+        self.convh2 = nn.Conv2d(3,16,3,1,padding=1)
+        self.convl = nn.Conv2d(32,32,3,1,padding=1)
+        self.convr = nn.Conv2d(32,32,3,1,padding=1)
+        self.conv = nn.Sequential(
+            nn.Conv2d(64,32,3,1,padding=1),
+            nn.MaxPool2d(2)
+        )
+
+    def forward(self,input):
+        a1 = input[:,[0,1],:,:]
+        a2 = input[:,[3,4],:,:]
+        h1 = input[:,[2,6,7],:,:]
+        h2 = input[:,[5,8,9],:,:]
+        l1 = self.conva1(a1) 
+        l2 = self.conva2(a2) 
+        r1 = self.convh1(h1)
+        r2 = self.convh2(h2)
+        l = torch.cat([l1,l2],1)
+        r = torch.cat([r1,r2],1)
+        l = self.convl(l)
+        r = self.convr(r)
+        out = torch.cat([l,r],1)
+        out = self.conv(out)
         return out
