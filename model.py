@@ -25,7 +25,7 @@ class islr_model(nn.Module):
 
         if self.train_mode=="single_skeleton" or "fusion" in self.train_mode:
             self.get_skeleton_model()
-        if self.train_mode=="single_rgb" or "fusion" in self.train_mode:
+        if "rgb" in self.train_mode or "fusion" in self.train_mode:
             self.get_cnn_model(cnn_type)
             self.cnn_classifier = cnn_classifier(
                 num_class=num_class,
@@ -44,10 +44,11 @@ class islr_model(nn.Module):
                 self.length,self.num_joint)
     
 
-    def forward(self, input, image, heatmap,train_mode="single_skeleton"):
+    def forward(self, input, image, heatmap):
         '''
             input: N J T D
         '''
+        train_mode = self.train_mode
         heatmap = heatmap.view((-1,)+heatmap.size()[-3:])
         if train_mode=="single_skeleton":
             out = self.skeleton_model(input)
@@ -80,14 +81,15 @@ class islr_model(nn.Module):
         elif train_mode=='simple_fusion':
             out = self.skeleton_model(input)
             out = l2norm(out,1)
+            # print("out {}".format(out.argmax(1)))
 
             out_c = self.cnn_model.forward_with_heatmap(image,heatmap)
             out_c = l2norm(out_c,1)
+            # print("out_c {}".format(out_c.argmax(1)))
 
             out = torch.stack([out,out_c],2)
-            # out = F.adaptive_avg_pool1d(out,1).squeeze(2)
             out = self.simple_fusion(out)
-            # print("final_out {}".format(out))
+            # print("final out {}".format(out.argmax(1)))
 
         return out
 
@@ -118,21 +120,34 @@ class islr_model(nn.Module):
         return f
 
     def get_optim_policies(self):
-        finetune_params = []
-        normal_params = []
-        for key in self.state_dict():
-            if "skeleton_model" in key  :
-                finetune_params.append(self.state_dict()[key])
-            elif "cnn_model" in key:
-                finetune_params.append(self.state_dict()[key])
-            else:
-                normal_params.append(self.state_dict()[key])
-        return [
-            {'params':finetune_params,'lr_mult':1,'decay_mult':1,
-            'name':"finetune_params"},
-            {'params':normal_params,'lr_mult':10,'decay_mult':1,
-            'name':"normal_params"},
+        if "rgb" in self.train_mode:
+            return [
+            {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+            'name':"cnn_params"},
         ]
+        elif self.train_mode=="single_skeleton":
+            return [
+            {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+            'name':"skeleton_params"},
+            ]
+        elif self.train_mode=="simple_fusion":
+            return [
+                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+                'name':"cnn_params"},
+                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+                'name':"skeleton_params"},
+                {'params':self.simple_fusion.parameters(),'lr_mult':10,'decay_mult':1,
+                'name':"normal_params"},
+            ]
+        elif self.train_mode=="late_fusion":
+            return [
+                {'params':self.cnn_model.parameters(),'lr_mult':1,'decay_mult':1,
+                'name':"cnn_params"},
+                {'params':self.skeleton_model.parameters(),'lr_mult':1,'decay_mult':1,
+                'name':"skeleton_params"},
+                {'params':self.late_fusion.parameters(),'lr_mult':10,'decay_mult':1,
+                'name':"normal_params"},
+            ]
 
 class late_fusion(nn.Module):
     def __init__(self,num_class):
@@ -164,6 +179,8 @@ class simple_fusion(nn.Module):
         self.fusion2 = nn.Linear(500,self.num_class)
 
     def forward(self,input):
+        N = input.size(0)
+        out = input.view(N,-1)
         out = self.fusion1(out)
         out = self.fusion2(out)
         return out

@@ -139,7 +139,7 @@ def main():
     #                             args.lr,
     #                             momentum=args.momentum,
     #                             weight_decay=args.weight_decay)
-    optimizer = torch.optim.Adam(model.module.parameters(),
+    optimizer = torch.optim.Adam(policies,
                                     args.lr)
     # optimizer = torch.optim.Adam(policies,
     #                                 args.lr)
@@ -203,7 +203,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # attentionmap_visualize(image,tmp[[12,14,16,18],6,:,:].unsqueeze(1))
         # attentionmap_visualize(image,tmp[:,6,:,:].unsqueeze(1))
         # compute output
-        output = model(input_var,image,heatmap,train_mode=args.train_mode)
+        output = model(input_var,image,heatmap)
         loss = criterion(output, target_var)
 
 
@@ -274,7 +274,7 @@ def validate(val_loader, model, criterion, epoch):
             heatmap = heatmap.float()
 
             # compute output
-            output = model(input_var,image,heatmap,train_mode=args.train_mode)
+            output = model(input_var,image,heatmap)
             loss = criterion(output, target_var)
 
             # measure accuracy and record loss
@@ -321,10 +321,10 @@ def adjust_learning_rate(optimizer, epoch, lr_steps):
     lr = args.lr * decay
     decay = args.weight_decay
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-        # param_group['lr'] = lr * param_group['lr_mult']
-        param_group['weight_decay'] = decay
-        # param_group['weight_decay'] = decay * param_group['decay_mult']
+        # param_group['lr'] = lr
+        param_group['lr'] = lr * param_group['lr_mult']
+        # param_group['weight_decay'] = decay
+        param_group['weight_decay'] = decay * param_group['decay_mult']
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
@@ -397,9 +397,9 @@ def resume_model(model, skeleton_resume, cnn_resume):
         model.load_state_dict(model_statedict)
     elif args.train_mode == "simple_fusion":
         skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in 
-                skeleton_state_dict.items() if not "cnn" in k}
-        cnn_restore_params = {".".join(["cnn_model"]+k.split(".")[1:]):v for k,v in
-                cnn_state_dict.items()}
+                skeleton_state_dict.items() if not ("cnn" in k or "fusion" in k)}
+        cnn_restore_params = {".".join(k.split(".")[1:]):v for k,v in
+                cnn_state_dict.items() if not ("skeleton" in k or "fusion" in k)}
         model_statedict.update(skeleton_restore_params)
         model_statedict.update(cnn_restore_params)
         model.load_state_dict(model_statedict)

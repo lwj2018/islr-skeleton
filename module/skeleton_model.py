@@ -80,10 +80,12 @@ class skeleton_model(nn.Module):
         out = self.conv2(out)
         out = out.permute(0,3,2,1).contiguous()
         # out: N J T D
-        out_for_att = (out.permute(0,1,3,2).contiguous()).view(N,-1,T)
-        att = self.conv_att(out_for_att).unsqueeze(3)
-        att = torch.sigmoid(att)
-        out = out*att
+
+        # out_for_att = (out.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        # att = self.conv_att(out_for_att).unsqueeze(3)
+        # att = torch.sigmoid(att)
+        # out = out*att
+        
         out = self.conv3(out)
         out = self.conv4(out)
 
@@ -91,10 +93,12 @@ class skeleton_model(nn.Module):
         outm = self.convm2(outm)
         outm = outm.permute(0,3,2,1).contiguous()
         # outm: N J T D
-        outm_for_att = (outm.permute(0,1,3,2).contiguous()).view(N,-1,T)
-        attm = self.convm_att(outm_for_att).unsqueeze(3)
-        attm = torch.sigmoid(attm)
-        outm = outm*attm
+
+        # outm_for_att = (outm.permute(0,1,3,2).contiguous()).view(N,-1,T)
+        # attm = self.convm_att(outm_for_att).unsqueeze(3)
+        # attm = torch.sigmoid(attm)
+        # outm = outm*attm
+
         outm = self.convm3(outm)
         outm = self.convm4(outm)
 

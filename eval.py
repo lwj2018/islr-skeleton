@@ -53,6 +53,8 @@ best_prec5 = 0
 def main():
     global args, best_prec1, best_prec5
     args = parser.parse_args()
+    args.store_name = '_'.join(['iSLR',args.train_mode,\
+                                'class'+str(args.num_class)])
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
     create_path(args.root_model)
@@ -137,7 +139,7 @@ def validate(val_loader, model, criterion, epoch):
             heatmap = heatmap.float()
 
             # compute output
-            output = model(input_var,image,heatmap,train_mode=args.train_mode)
+            output = model(input_var,image,heatmap)
             loss = criterion(output, target_var)
 
             # measure accuracy and record loss
@@ -171,7 +173,7 @@ def validate(val_loader, model, criterion, epoch):
     print(output_best)
     print(cmat.sum)
     save_cmat(cmat.sum)
-    print("train mode: %s",args.train_mode)
+    print("train mode: %s"%args.train_mode)
 
     return top1.avg, top5.avg
 
@@ -185,7 +187,7 @@ def confusion_matrix(output,target):
 
 def save_cmat(cmat):
     create_path("output")
-    file = open("output/cmat.txt","w")
+    file = open("output/cmat_"+args.store_name+".txt","w")
     for i in range(cmat.shape[0]):
         for j in range(cmat.shape[1]):
             file.write("%d "%cmat[i,j])

@@ -250,10 +250,10 @@ class cnn_model(nn.Module):
         N,C,K,K = conv_out.size()
         heatmap = F.upsample(heatmap,size=(K,K),mode='bilinear').contiguous()
 
-        for i in range(heatmap.size(1)):
-            plt.subplot(2,5,i+1)
-            plt.imshow(heatmap.detach().cpu().numpy()[0,i,...])
-        plt.show()
+        # for i in range(heatmap.size(1)):
+        #     plt.subplot(2,5,i+1)
+        #     plt.imshow(heatmap.detach().cpu().numpy()[0,i,...])
+        # plt.show()
 
         for i in range(heatmap.size(1)):
             _f =  conv_out*heatmap[:,i,:,:].unsqueeze(1)
