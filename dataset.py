@@ -34,7 +34,8 @@ class iSLR_Dataset(data.Dataset):
     
     def __init__(self, video_root, skeleton_root, list_file,
                 modality='RGB', transform=None, 
-                length=32,image_length=16,width=1280,height=720):
+                length=32,image_length=16,width=1280,height=720,
+                train_mode="single_skeleton"):
         self.video_root = video_root
         self.skeleton_root = skeleton_root
         self.list_file = list_file
@@ -46,6 +47,7 @@ class iSLR_Dataset(data.Dataset):
         self.width = width
         self.height = height
         self.hand_joint = [5,6,7,9,10,11,21,22,23,24]
+        self.train_mode = train_mode
         
         self._parse_list()
 
@@ -77,7 +79,7 @@ class iSLR_Dataset(data.Dataset):
         indices = np.sort(indices+jitter)
         indices = np.clip(indices,0,num_frames-1)
         skeleton_indices = indices
-        image_indices = indices[::1]
+        image_indices = indices[::2]
         return skeleton_indices,image_indices
     
     def _load_data(self, filename):
@@ -138,35 +140,39 @@ class iSLR_Dataset(data.Dataset):
             MatForImage = mat
             MatForImage = MatForImage/np.array([self.width,self.height])
 
-        # generate heatmaps
-        heat_maps = []
-        for i in range(MatForImage.shape[0]):
-            heat_map =[]
-            for j in range(MatForImage.shape[1]):
-                x,y = MatForImage[i,j,:]
-                z = self.generate_gaussian(x,y)
-                # if j==0:
-                #     plt.subplot(4,4,i+1)
-                #     plt.imshow(z)
-                heat_map.append(z)
-            heat_map = np.stack(heat_map,0)
-            heat_maps.append(heat_map)
-        # plt.show()
-        heat_maps = np.stack(heat_maps,0)
-    
-        # get images
-        images = list()
-        for i,ind in enumerate(image_indices):
-            img = self._load_image(record.path, ind)
-            if augmentation:
-                img = crop_img(img,min_x,min_y,max_x,max_y)
-            else:
-                pass
-            images.extend(img)
+        if "rgb" in self.train_mode or "fusion" in self.train_mode:
+            # generate heatmaps
+            heat_maps = []
+            for i in range(MatForImage.shape[0]):
+                heat_map =[]
+                for j in range(MatForImage.shape[1]):
+                    x,y = MatForImage[i,j,:]
+                    z = self.generate_gaussian(x,y)
+                    # if j==0:
+                    #     plt.subplot(4,4,i+1)
+                    #     plt.imshow(z)
+                    heat_map.append(z)
+                heat_map = np.stack(heat_map,0)
+                heat_maps.append(heat_map)
+            # plt.show()
+            heat_maps = np.stack(heat_maps,0)
         
-        images = self.transform(images)
+            # get images
+            images = list()
+            for i,ind in enumerate(image_indices):
+                img = self._load_image(record.path, ind)
+                if augmentation:
+                    img = crop_img(img,min_x,min_y,max_x,max_y)
+                else:
+                    pass
+                images.extend(img)
+            
+            images = self.transform(images)
         
-        return mat, images, heat_maps, record.label
+            return mat, images, heat_maps, record.label
+        
+        elif self.train_mode == "single_skeleton":
+            return mat, 0, 0, record.label
 
     def __len__(self):
         return len(self.video_list)

@@ -94,6 +94,7 @@ def main():
         iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
             length=args.length,
             image_length=args.image_length,
+            train_mode=args.train_mode,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),

@@ -100,6 +100,7 @@ def main():
         iSLR_Dataset(args.video_root,args.skeleton_root,args.train_file,
             length=args.length,
             image_length=args.image_length,
+            train_mode=args.train_mode,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),
@@ -118,6 +119,7 @@ def main():
         iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
             length=args.length,
             image_length=args.image_length,
+            train_mode=args.train_mode,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),
@@ -244,6 +246,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                         data_time=data_time, loss=losses, top1=top1, top5=top5, 
                         lr=optimizer.param_groups[-1]['lr']))
             print(output)
+            # writer.add_histogram('hist',model.module().parameters(), epoch*len*(train_loader)+i)
 
         writer.add_scalar('train/loss', losses.avg, epoch*len(train_loader)+i)
         writer.add_scalar('train/acc', top1.avg, epoch*len(train_loader)+i)
@@ -412,7 +415,8 @@ def resume_model(model, skeleton_resume, cnn_resume):
     elif args.train_mode == "single_skeleton":
         skeleton_state_dict = load_skeleton(skeleton_resume)
         skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
-                skeleton_state_dict.items() if "skeleton" in k}
+                skeleton_state_dict.items() if "skeleton" in k and not "conv3" in k
+                and not "convm3" in k}
         model_statedict.update(skeleton_restore_params)
         model.load_state_dict(model_statedict)
 

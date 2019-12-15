@@ -19,11 +19,11 @@ class skeleton_model(nn.Module):
             )
         self.conv2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
         self.conv_att = nn.Conv1d(32*self.num_joint,1,3,1,padding=1)
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(self.num_joint,32,3,1,padding=1),
-            nn.MaxPool2d(2)
-            )
-        # self.hconv = HierarchyConv()
+        # self.conv3 = nn.Sequential(
+        #     nn.Conv2d(self.num_joint,32,3,1,padding=1),
+        #     nn.MaxPool2d(2)
+        #     )
+        self.hconv = HierarchyConv()
         self.conv4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=0.5),
@@ -36,11 +36,11 @@ class skeleton_model(nn.Module):
             )
         self.convm2 = nn.Conv2d(64,32,(3,1),1,padding=(1,0))
         self.convm_att = nn.Conv1d(32*self.num_joint,1,3,1,padding=1)
-        self.convm3 = nn.Sequential(
-            nn.Conv2d(self.num_joint,32,3,1,padding=1),
-            nn.MaxPool2d(2)
-            )
-        # self.hconvm = HierarchyConv()
+        # self.convm3 = nn.Sequential(
+        #     nn.Conv2d(self.num_joint,32,3,1,padding=1),
+        #     nn.MaxPool2d(2)
+        #     )
+        self.hconvm = HierarchyConv()
         self.convm4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
             nn.Dropout2d(p=0.5),
@@ -89,8 +89,8 @@ class skeleton_model(nn.Module):
         # print(att)
         out = out*att
         
-        out = self.conv3(out)
-        # out = self.hconv(out)
+        # out = self.conv3(out)
+        out = self.hconv(out)
         out = self.conv4(out)
 
         outm = self.convm1(motion)
@@ -104,8 +104,8 @@ class skeleton_model(nn.Module):
         # print(attm)
         outm = outm*attm
 
-        outm = self.convm3(outm)
-        # outm = self.hconvm(outm)
+        # outm = self.convm3(outm)
+        outm = self.hconvm(outm)
         outm = self.convm4(outm)
 
         out = torch.cat((out,outm),dim=1)
@@ -127,6 +127,7 @@ class skeleton_model(nn.Module):
 
 class HierarchyConv(nn.Module):
     def __init__(self):
+        super(HierarchyConv,self).__init__()
         self.conva1 = nn.Conv2d(2,16,3,1,padding=1)
         self.conva2 = nn.Conv2d(2,16,3,1,padding=1)
         self.convh1 = nn.Conv2d(3,16,3,1,padding=1)
