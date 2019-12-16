@@ -229,6 +229,7 @@ class cnn_model(nn.Module):
         base_out = self.base_model(input.view( (-1, sample_len) + input.size()[-2:]) )
         # if self.base_model_name=="Resnet_cbam":
         #     self.attention_map = self.base_model.attention_map
+        self.conv1map = self.base_model.conv1map
 
         if self.dropout > 0:
             base_out = self.new_fc(base_out)
@@ -236,6 +237,7 @@ class cnn_model(nn.Module):
         base_out = base_out.view( (input.size(0),-1) )
         if self.first_fc is not None:
             base_out = self.first_fc(base_out)
+        self.feature = base_out
         output = self.final_fc(base_out)
         
         return output
@@ -244,6 +246,7 @@ class cnn_model(nn.Module):
         if self.modality == 'RGB':
             sample_len = 3
         conv_out = self.base_model.get_conv_out(input.view( (-1, sample_len) + input.size()[-2:]) )
+        self.conv1map = self.base_model.conv1map
 
         # use heatmap
         _f_list = []
@@ -275,6 +278,7 @@ class cnn_model(nn.Module):
         base_out = base_out.view( (input.size(0),-1) )
         if self.first_fc is not None:
             base_out = self.first_fc(base_out)
+        self.feature = base_out
         output = self.final_fc(base_out)
         
         return output

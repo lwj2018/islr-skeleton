@@ -182,6 +182,7 @@ class ResNet(nn.Module):
         else:
             x = F.avg_pool2d(x, 4)
         x = x.view(x.size(0), -1)
+        self.feature = x
         x = self.fc(x)
         return x
 
@@ -191,6 +192,7 @@ class ResNet(nn.Module):
             x = self.relu(x)
             if self.network_type == "ImageNet":
                 x = self.maxpool(x)
+            self.conv1map = x
 
             x = self.layer1(x)
             if not self.bam1 is None:
@@ -207,7 +209,6 @@ class ResNet(nn.Module):
             x = self.layer4(x)
             conv_out = x
             return conv_out
-
 
 def ResidualNet(network_type, depth, num_classes, att_type):
 

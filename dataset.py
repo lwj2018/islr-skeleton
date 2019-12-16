@@ -32,22 +32,23 @@ class VideoRecord(object):
 
 class iSLR_Dataset(data.Dataset):
     
-    def __init__(self, video_root, skeleton_root, list_file,
-                modality='RGB', transform=None, 
-                length=32,image_length=16,width=1280,height=720,
-                train_mode="single_skeleton"):
-        self.video_root = video_root
-        self.skeleton_root = skeleton_root
+    def __init__(self, list_file,
+                transform=None,  args=None,
+                modality='RGB', width=1280,height=720
+               ):
+        self.video_root = args.video_root
+        self.skeleton_root = args.skeleton_root
         self.list_file = list_file
-        self.modality = modality
         self.transform = transform
-        self.length = length
-        self.image_length = image_length
+        self.length = args.length
+        self.image_length = args.image_length
+        self.train_mode = args.train_mode
+        self.augmentation = args.augmentation
         #TODO not hard code
+        self.modality = modality
         self.width = width
         self.height = height
         self.hand_joint = [5,6,7,9,10,11,21,22,23,24]
-        self.train_mode = train_mode
         
         self._parse_list()
 
@@ -79,7 +80,7 @@ class iSLR_Dataset(data.Dataset):
         indices = np.sort(indices+jitter)
         indices = np.clip(indices,0,num_frames-1)
         skeleton_indices = indices
-        image_indices = indices[::2]
+        image_indices = indices[::self.length//self.image_length]
         return skeleton_indices,image_indices
     
     def _load_data(self, filename):
@@ -115,8 +116,7 @@ class iSLR_Dataset(data.Dataset):
         mat = mat[skeleton_indices,:,:]
         # mat: T J D
         
-        augmentation = 1
-        if augmentation:
+        if self.augmentation:
             # view invarianttransform
             mat = view_invariant_transform(mat)
             # select the hand joint
@@ -161,7 +161,7 @@ class iSLR_Dataset(data.Dataset):
             images = list()
             for i,ind in enumerate(image_indices):
                 img = self._load_image(record.path, ind)
-                if augmentation:
+                if self.augmentation:
                     img = crop_img(img,min_x,min_y,max_x,max_y)
                 else:
                     pass

@@ -57,9 +57,14 @@ class islr_model(nn.Module):
             # f = self.cnn_forward(image,heatmap)
             # out = self.cnn_classifier(f)
             out = self.cnn_model.forward_with_heatmap(image,heatmap)
+            # out = self.cnn_model(image)
+            self.conv1map = self.cnn_model.conv1map
+            self.feature = self.cnn_model.feature
 
         elif train_mode=="rgb":
             out = self.cnn_model(image)
+            self.conv1map = self.cnn_model.conv1map
+            self.feature = self.cnn_model.feature
         
         elif train_mode=="late_fusion":
             out = self.skeleton_model.get_feature(input)

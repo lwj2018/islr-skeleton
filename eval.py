@@ -91,10 +91,8 @@ def main():
     normalize = GroupNormalize(input_mean,input_std)
 
     val_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
-            length=args.length,
-            image_length=args.image_length,
-            train_mode=args.train_mode,
+        iSLR_Dataset(args.val_file,
+            args=args,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),

@@ -97,10 +97,8 @@ def main():
     normalize = GroupNormalize(input_mean,input_std)
 
     train_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(args.video_root,args.skeleton_root,args.train_file,
-            length=args.length,
-            image_length=args.image_length,
-            train_mode=args.train_mode,
+        iSLR_Dataset(args.train_file,
+            args=args,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),
@@ -116,10 +114,8 @@ def main():
     )
 
     val_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
-            length=args.length,
-            image_length=args.image_length,
-            train_mode=args.train_mode,
+        iSLR_Dataset(args.val_file,
+            args=args,
             transform=torchvision.transforms.Compose([
                 GroupScale((crop_size,crop_size)),
                 # GroupScale(int(scale_size)),
@@ -205,8 +201,13 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # tmp = heatmap.view((-1,)+heatmap.size()[-3:])
         # attentionmap_visualize(image,tmp[[12,14,16,18],6,:,:].unsqueeze(1))
         # attentionmap_visualize(image,tmp[:,6,:,:].unsqueeze(1))
+
         # compute output
         output = model(input_var,image,heatmap)
+        conv1map = model.module.conv1map
+        # conv1map = conv1map.squeeze()
+        # for i in range(conv1map.size(0))
+        feature = model.module.feature
         loss = criterion(output, target_var)
 
 
@@ -246,7 +247,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
                         data_time=data_time, loss=losses, top1=top1, top5=top5, 
                         lr=optimizer.param_groups[-1]['lr']))
             print(output)
-            # writer.add_histogram('hist',model.module().parameters(), epoch*len*(train_loader)+i)
+            for name,param in model.module.named_parameters():
+                writer.add_histogram(name,param.detach().cpu().numpy(), epoch*len(train_loader)+i)
 
         writer.add_scalar('train/loss', losses.avg, epoch*len(train_loader)+i)
         writer.add_scalar('train/acc', top1.avg, epoch*len(train_loader)+i)
