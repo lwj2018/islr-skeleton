@@ -53,7 +53,7 @@ best_prec5 = 0
 def main():
     global args, best_prec1, best_prec5
     args = parser.parse_args()
-    args.store_name = '_'.join(['iSLR',args.train_mode,\
+    args.store_name = '_'.join(['part_iSLR',args.train_mode,\
                                 'class'+str(args.num_class)])
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
 
@@ -140,6 +140,14 @@ def validate(val_loader, model, criterion, epoch):
             # compute output
             output = model(input_var,image,heatmap)
             loss = criterion(output, target_var)
+            # plot conv 1 map
+            # conv1map = model.module.conv1map
+            # conv1map = torch.mean(conv1map,1)
+            # conv1map = conv1map.squeeze().detach().cpu().numpy()
+            # for i in range(conv1map.shape[0]):
+            #     plt.subplot(4,4,i+1)
+            #     plt.imshow(conv1map[i,...])
+            # plt.show()
 
             # measure accuracy and record loss
             prec1, prec5 = accuracy(output.data, target, topk=(1,5))

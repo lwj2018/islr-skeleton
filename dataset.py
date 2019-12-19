@@ -229,6 +229,15 @@ class iSLR_Dataset(data.Dataset):
         mat = mat+delta
         return mat
 
+    def random_scale(self, mat):
+        # input: T J D
+        min = 0.8
+        max = 1.2
+        import random
+        scale =  random.random()*(max-min)+min
+        mat = mat*scale
+        return mat
+
     def random_shift(self,mat):
         shift_amp = 20
         xshift = np.random.randint(-shift_amp,shift_amp)

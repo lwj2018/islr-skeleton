@@ -204,11 +204,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # compute output
         output = model(input_var,image,heatmap)
-        conv1map = model.module.conv1map
-        # conv1map = conv1map.squeeze()
-        # for i in range(conv1map.size(0))
-        feature = model.module.feature
         loss = criterion(output, target_var)
+        # conv1map = model.module.conv1map
+        # feature = model.module.feature
 
 
         # measure accuracy and record loss
@@ -419,6 +417,8 @@ def resume_model(model, skeleton_resume, cnn_resume):
         skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
                 skeleton_state_dict.items() if "skeleton" in k and not "conv3" in k
                 and not "convm3" in k}
+        # skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
+        #         skeleton_state_dict.items() if "skeleton" in k}
         model_statedict.update(skeleton_restore_params)
         model.load_state_dict(model_statedict)
 
