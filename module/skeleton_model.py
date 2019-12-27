@@ -26,7 +26,7 @@ class skeleton_model(nn.Module):
         self.hconv = HierarchyConv()
         self.conv4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
-            nn.Dropout2d(p=0.5),
+            # nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
 
@@ -43,27 +43,28 @@ class skeleton_model(nn.Module):
         self.hconvm = HierarchyConv()
         self.convm4 = nn.Sequential(
             nn.Conv2d(32,64,3,1,padding=1),
-            nn.Dropout2d(p=0.5),
+            # nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
                 
         self.conv5 = nn.Sequential(
             nn.Conv2d(128,128,3,1,padding=1),
             nn.ReLU(),
-            nn.Dropout2d(p=0.5),
+            # nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
         self.conv6 = nn.Sequential(
             nn.Conv2d(128,256,3,1,padding=1),
             nn.ReLU(),
-            nn.Dropout2d(p=0.5),
+            # nn.Dropout2d(p=0.5),
             nn.MaxPool2d(2)
         )
 
         self.fc7 = nn.Sequential(
             nn.Linear(256*(length//16)*(32//16),256),
             nn.ReLU(),
-            nn.Dropout2d(p=0.5))
+            # nn.Dropout2d(p=0.5)
+        )
         self.fc8 = nn.Linear(256,self.num_class)
 
     def forward(self,input):

@@ -33,7 +33,7 @@ parser.add_argument('--epochs', default=1500, type=int, metavar='N',
 # remember to change when switch to server
 parser.add_argument('-b', '--batch-size', default=32, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
-parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-6, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[10000], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')
@@ -57,7 +57,7 @@ parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
                     help='number of data loading workers (default: 32)')
 # parser.add_argument('--resume', default=r'models/iSLR_late_fusion_class500_best.pth.tar', type=str, metavar='PATH',
 #                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
-parser.add_argument('--resume', default=r'', type=str, metavar='PATH',
+parser.add_argument('--resume', default=r'models/iSLR_single_skeleton_class500_best.pth.tar', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
 parser.add_argument('--val_resume', 
         default=r'models/iSLR_single_skeleton_class500_best.pth.tar', type=str, metavar='PATH',
