@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--video_root",type=str,
                     default="/home/liweijie/SLR_dataset/S500_color_video")
 parser.add_argument("--skeleton_root",type=str,
-                    default="/home/liweijie/SLR_dataset/xf500_body_color_txt")
+                    default="/home/liweijie/skeletons_dataset")
 parser.add_argument("--train_file",type=str,
                     default="input/train_list.txt")
 parser.add_argument("--val_file",type=str,
@@ -31,9 +31,9 @@ parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=1500, type=int, metavar='N',
                     help='number of total epochs to run')
 # remember to change when switch to server
-parser.add_argument('-b', '--batch-size', default=32, type=int,
+parser.add_argument('-b', '--batch-size', default=8, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
-parser.add_argument('--lr', '--learning-rate', default=1e-6, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-7, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[10000], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')
@@ -53,7 +53,7 @@ parser.add_argument('--eval-freq', '-ef', default=5, type=int,
 
 # ========================= Runtime Configs ==========================
 # workers 原默认值为30
-parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=64, type=int, metavar='N',
                     help='number of data loading workers (default: 32)')
 # parser.add_argument('--resume', default=r'models/iSLR_late_fusion_class500_best.pth.tar', type=str, metavar='PATH',
 #                     help='path to latest checkpoint (default: models/iSLR_late_fusion_class500_best.pth.tar')
@@ -65,7 +65,7 @@ parser.add_argument('--val_resume',
 # parser.add_argument('--skeleton_resume', 
 #         default='models/iSLR_skeleton_class500_best.pth.tar', type=str)
 parser.add_argument('--skeleton_resume', 
-        default=r'models/81.243%iSLR_single_skeleton_class500_best.pth.tar', type=str)
+        default=r'models/part84.229iSLR_single_skeleton_class500_best.pth.tar', type=str)
 parser.add_argument('--cnn_resume', 
         default='models/iSLR_RGB_resnet18_class500_hidden1024_best.pth.tar', type=str)
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',

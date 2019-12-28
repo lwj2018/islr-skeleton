@@ -416,7 +416,8 @@ def resume_model(model, skeleton_resume, cnn_resume):
         skeleton_state_dict = load_skeleton(skeleton_resume)
         skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
                 skeleton_state_dict.items() if "skeleton" in k and not "conv3" in k
-                and not "convm3" in k}
+                and not "convm3" in k and not "hconv" in k and not "hconvm" in k
+                and not "att" in k}
         # skeleton_restore_params = {".".join(k.split(".")[1:]):v for k,v in
         #         skeleton_state_dict.items() if "skeleton" in k}
         model_statedict.update(skeleton_restore_params)

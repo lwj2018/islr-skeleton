@@ -8,6 +8,7 @@ import numpy as np
 
 import os
 import os.path as osp
+import time
 
 class VideoRecord(object):
     def __init__(self,row):
@@ -18,7 +19,7 @@ class VideoRecord(object):
         return self._data[0]
 
     @property
-    def skeleton_file(self):
+    def skeleton_path(self):
         return self._data[1]
 
     @property
@@ -48,7 +49,6 @@ class iSLR_Dataset(data.Dataset):
         self.modality = modality
         self.width = width
         self.height = height
-        self.hand_joint = [5,6,7,9,10,11,21,22,23,24]
         
         self._parse_list()
 
@@ -83,32 +83,80 @@ class iSLR_Dataset(data.Dataset):
         image_indices = indices[::self.length//self.image_length]
         return skeleton_indices,image_indices
     
-    def _load_data(self, filename):
-        filename = osp.join(self.skeleton_root, filename)
-        f = open(filename,"r")
-        content = f.readlines()
-        mat = self.content_to_mat(content)
+    def _load_data(self, path):
+        # 对于openpose数据集要处理训练列表
+        path = path.rstrip("body.txt")+"color"
+        path = osp.join(self.skeleton_root, path)
+        file_list = os.listdir(path)
+        file_list.sort()
+        mat = []
+        for i,file in enumerate(file_list):
+            # 第一帧有问题，先排除
+            if i>0:
+                filename =  osp.join(path,file)
+                f = open(filename,"r")
+                content = f.readlines()
+                try:
+                    mat_i = self.content_to_mat(content)
+                except:
+                    print(filename)
+                mat.append(mat_i)
+        mat = np.array(mat)
+        end =time.time()
+        mat = mat.astype(np.float32)
         return mat
 
     def content_to_mat(self,content):
         mat = []
-        for record in content:
-            skeleton = record.rstrip("\n").rstrip(" ").split(" ")
-            skeleton = [int(x) for x in skeleton]
-            skeleton = np.array(skeleton)
-            shape = skeleton.size
-            skeleton = np.reshape(skeleton,[shape//2,2])
-            # skeleton = skeleton[self.hand_joint]
-            mat.append(skeleton)
-        # mat: T,J,D
+        for i in range(len(content)):
+            if "Body" in content[i]:
+                for j in range(25):
+                    record = content[i+1+j].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+                    joint = [float(x) for x in record.split()]
+                    mat.append(joint)
+            elif "Face" in content[i]:
+                for j in range(70):
+                    record = content[i+1+j].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+                    joint = [float(x) for x in record.split()]
+                    mat.append(joint)
+
+            elif "Left" in content[i]:
+                for j in range(21):
+                    record = content[i+1+j].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+                    joint = [float(x) for x in record.split()]
+                    mat.append(joint)
+
+            elif "Right" in content[i]:
+                for j in range(21):
+                    record = content[i+1+j].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+                    joint = [float(x) for x in record.split()]
+                    mat.append(joint)
+        # for i in range(1,26):
+        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+        #     joint = [float(x) for x in record.split()]
+        #     mat.append(joint)
+        # for i in range(27,97):
+        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+        #     joint = [float(x) for x in record.split()]
+        #     mat.append(joint)
+        # for i in range(98,119):
+        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+        #     joint = [float(x) for x in record.split()]
+        #     mat.append(joint)
+        # for i in range(120,141):
+        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
+        #     joint = [float(x) for x in record.split()]
+        #     mat.append(joint)
+
         mat = np.array(mat)
-        mat = mat.astype(np.float32)
-        return mat   
+        # 第三维是置信度，不需要
+        mat = mat[:,0:2]
+        return mat
 
     def __getitem__(self, index):
         record = self.video_list[index]
         # get mat
-        mat = self._load_data(record.skeleton_file)
+        mat = self._load_data(record.skeleton_path)
         num_frames = record.num_frames if record.num_frames<mat.shape[0]\
             else mat.shape[0]
         skeleton_indices,image_indices = self.get_sample_indices(num_frames)
@@ -120,11 +168,9 @@ class iSLR_Dataset(data.Dataset):
             # view invarianttransform
             mat = view_invariant_transform(mat)
             # select the hand joint
-            mat = mat[:,self.hand_joint,:]
             # data augmentation
             mat = self.random_augmentation(mat)
 
-            MatForImage = MatForImage[:,self.hand_joint,:]
             # get the four corner
             x = MatForImage[:,:,0]
             y = MatForImage[:,:,1]

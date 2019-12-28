@@ -160,10 +160,10 @@ class islr_model(nn.Module):
             'name':"skeleton_params"},
             {'params':self.skeleton_model.fc8.parameters(),'lr_mult':1,'decay_mult':0,
             'name':"skeleton_params"},
-            {'params':self.skeleton_model.conv_att.parameters(),'lr_mult':10,'decay_mult':10,
-            'name':"att_params"},
-            {'params':self.skeleton_model.convm_att.parameters(),'lr_mult':10,'decay_mult':10,
-            'name':"att_params"},
+            # {'params':self.skeleton_model.conv_att.parameters(),'lr_mult':10,'decay_mult':10,
+            # 'name':"att_params"},
+            # {'params':self.skeleton_model.convm_att.parameters(),'lr_mult':10,'decay_mult':10,
+            # 'name':"att_params"},
             ]
         elif self.train_mode=="simple_fusion":
             return [
