@@ -98,11 +98,11 @@ class iSLR_Dataset(data.Dataset):
                 content = f.readlines()
                 try:
                     mat_i = self.content_to_mat(content)
+                    mat.append(mat_i)
                 except:
-                    print(filename)
-                mat.append(mat_i)
+                    print("can not convert this file to mat: "+filename)
         mat = np.array(mat)
-        end =time.time()
+        end = time.time()
         mat = mat.astype(np.float32)
         return mat
 
@@ -131,6 +131,7 @@ class iSLR_Dataset(data.Dataset):
                     record = content[i+1+j].lstrip().lstrip("[").rstrip("\n").rstrip("]")
                     joint = [float(x) for x in record.split()]
                     mat.append(joint)
+                break
         # for i in range(1,26):
         #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
         #     joint = [float(x) for x in record.split()]
@@ -166,10 +167,10 @@ class iSLR_Dataset(data.Dataset):
         
         if self.augmentation:
             # view invarianttransform
-            mat = view_invariant_transform(mat)
+            # mat = view_invariant_transform(mat)
             # select the hand joint
             # data augmentation
-            mat = self.random_augmentation(mat)
+            # mat = self.random_augmentation(mat)
 
             # get the four corner
             x = MatForImage[:,:,0]
@@ -182,7 +183,6 @@ class iSLR_Dataset(data.Dataset):
             MatForImage = MatForImage-np.array([min_x,min_y])
             MatForImage = MatForImage/np.array([max_x-min_x,max_y-min_y])
         else:
-            mat = mat[:,self.hand_joint,:]
             MatForImage = mat
             MatForImage = MatForImage/np.array([self.width,self.height])
 
@@ -307,10 +307,15 @@ def view_invariant_transform(mat):
     '''
       @params mat: T J D
     '''
-    index1 = 12
-    index2 = 16
+    # index1 = 12
+    # index2 = 16
+    index1 = 9
+    index2 = 12
+
     new_mat = np.zeros(mat.shape)
     for i in range(mat.shape[0]):
+        if 0 in mat[i,[index1,index2],:]:
+            print(mat[i,[index1,index2],:])
         delta_x,delta_y = mat[i,index2,:]-mat[i,index1,:]
         center_x,center_y = 0.5*(mat[i,index2,:]+mat[i,index1,:])
         length = (delta_x*delta_x+delta_y*delta_y)**0.5

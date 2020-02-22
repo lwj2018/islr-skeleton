@@ -133,11 +133,11 @@ class HierarchyConv(nn.Module):
         self.convra = nn.Conv2d(2,16,3,1,padding=1)
         self.conflh = nn.Conv2d(21,16,3,1,padding=1)
         self.confrh = nn.Conv2d(21,16,3,1,padding=1)
-        self.convf = nn.Conv2d(70,32,3,1,padding=1)
+        # self.convf = nn.Conv2d(70,32,3,1,padding=1)
         self.convl = nn.Conv2d(32,32,3,1,padding=1)
         self.convr = nn.Conv2d(32,32,3,1,padding=1)
         self.conv = nn.Sequential(
-            nn.Conv2d(96,32,3,1,padding=1),
+            nn.Conv2d(64,32,3,1,padding=1),
             nn.MaxPool2d(2)
         )
 
@@ -155,7 +155,7 @@ class HierarchyConv(nn.Module):
         r = torch.cat([r1,r2],1)
         l = self.convl(l)
         r = self.convr(r)
-        f = self.convf(face)
-        out = torch.cat([l,r,f],1)
+        # f = self.convf(face)
+        out = torch.cat([l,r],1)
         out = self.conv(out)
         return out

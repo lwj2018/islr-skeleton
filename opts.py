@@ -26,6 +26,7 @@ parser.add_argument('--hidden_unit', type=int, default=512)
 parser.add_argument('--length', type=int, default=32)
 parser.add_argument('--image_length',type=int,default=16)
 parser.add_argument('--augmentation',type=int,default=1)
+parser.add_argument('--savelog',type=int,default=0)
 # ========================= Learning Configs ==========================
 parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=1500, type=int, metavar='N',
@@ -33,7 +34,7 @@ parser.add_argument('--epochs', default=1500, type=int, metavar='N',
 # remember to change when switch to server
 parser.add_argument('-b', '--batch-size', default=8, type=int,
                     metavar='N', help='mini-batch size (default: 8)')
-parser.add_argument('--lr', '--learning-rate', default=1e-7, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-6, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[10000], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')

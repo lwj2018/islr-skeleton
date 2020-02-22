@@ -143,8 +143,9 @@ def main():
     # optimizer = torch.optim.Adam(policies,
     #                                 args.lr)
     # get writer
-    global writer
-    writer = SummaryWriter(comment=args.store_name)
+    if args.savelog == 1:
+        global writer
+        writer = SummaryWriter(comment=args.store_name)
 
     # prec1,prec5 = validate(val_loader, model, criterion, 0 // args.eval_freq)
 
@@ -245,11 +246,13 @@ def train(train_loader, model, criterion, optimizer, epoch):
                         data_time=data_time, loss=losses, top1=top1, top5=top5, 
                         lr=optimizer.param_groups[-1]['lr']))
             print(output)
-            for name,param in model.module.named_parameters():
-                writer.add_histogram(name,param.detach().cpu().numpy(), epoch*len(train_loader)+i)
+            if args.savelog:
+                for name,param in model.module.named_parameters():
+                    writer.add_histogram(name,param.detach().cpu().numpy(), epoch*len(train_loader)+i)
 
-        writer.add_scalar('train/loss', losses.avg, epoch*len(train_loader)+i)
-        writer.add_scalar('train/acc', top1.avg, epoch*len(train_loader)+i)
+        if args.savelog:
+            writer.add_scalar('train/loss', losses.avg, epoch*len(train_loader)+i)
+            writer.add_scalar('train/acc', top1.avg, epoch*len(train_loader)+i)
 
 
 
@@ -302,7 +305,8 @@ def validate(val_loader, model, criterion, epoch):
                     top1=top1, top5=top5))
                 print(output)
 
-            writer.add_scalar('val/acc', top1.avg, epoch*len(val_loader)+i)
+            if args.savelog:
+                writer.add_scalar('val/acc', top1.avg, epoch*len(val_loader)+i)
 
     output = ('Testing Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'
           .format(top1=top1, top5=top5, loss=losses))

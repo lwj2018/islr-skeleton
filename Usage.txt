@@ -1,0 +1,4 @@
+在服务器251中使用
+#1 cislr开启配置好深度学习库的pytorch环境
+#2 cdskeleton进入工作目录
+#3 python train.py 运行训练脚本
