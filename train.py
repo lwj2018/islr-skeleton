@@ -24,7 +24,8 @@ from tensorboardX import SummaryWriter
 from opts import parser
 from transforms import *
 from viz_utils import attentionmap_visualize
-
+import numpy
+from socketUtils import *
 
 def create_path(path):
     if not osp.exists(path):
@@ -59,6 +60,13 @@ def main():
                                 'class'+str(args.num_class)])
     
     create_path(args.root_model)
+
+    global arr
+    nsize = 12
+    arr = numpy.zeros(nsize)
+
+    global c
+    c,s = initServerSocket()
     # get model 
     model = islr_model(args.num_class,train_mode=args.train_mode)
     policies = model.get_optim_policies()
@@ -231,6 +239,16 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         optimizer.step()
 
+        # update data
+        arr[0] = epoch
+        arr[1] = i
+        arr[2] = len(train_loader)
+        arr[3] = losses.avg
+        arr[4] = top1.avg
+        arr[5] = top5.avg
+        # send data
+        send_from(arr,c)
+        
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -314,6 +332,15 @@ def validate(val_loader, model, criterion, epoch):
     output_best = '\nBest Prec@1: %.3f Best Prec@5: %.3f'%(best_prec1,best_prec5)
     print(output_best)
     print("train mode: %s"%args.train_mode)
+
+    # update data
+    arr[7] = best_prec1
+    arr[8] = best_prec5
+    arr[9] = losses.avg
+    arr[10] = top1.avg
+    arr[11] = top5.avg
+    # send data
+    send_from(arr,c)
 
     return top1.avg, top5.avg
 
