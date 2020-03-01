@@ -132,22 +132,6 @@ class iSLR_Dataset(data.Dataset):
                     joint = [float(x) for x in record.split()]
                     mat.append(joint)
                 break
-        # for i in range(1,26):
-        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
-        #     joint = [float(x) for x in record.split()]
-        #     mat.append(joint)
-        # for i in range(27,97):
-        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
-        #     joint = [float(x) for x in record.split()]
-        #     mat.append(joint)
-        # for i in range(98,119):
-        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
-        #     joint = [float(x) for x in record.split()]
-        #     mat.append(joint)
-        # for i in range(120,141):
-        #     record = content[i].lstrip().lstrip("[").rstrip("\n").rstrip("]")
-        #     joint = [float(x) for x in record.split()]
-        #     mat.append(joint)
 
         mat = np.array(mat)
         # 第三维是置信度，不需要
